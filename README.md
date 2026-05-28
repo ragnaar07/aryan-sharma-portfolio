@@ -119,10 +119,12 @@ Recommended deployment targets:
 Before deploying:
 
 1. Set `GEMINI_API_KEY` in deployment environment variables.
-2. Set `NEXT_PUBLIC_URL` to the deployed domain.
-3. Run `npm run build`.
-4. Do not expose API keys in client code or committed files.
+2. Run `npm run build`.
+3. Do not expose API keys in client code or committed files.
 
 ## License
 
 This repository contains Aryan Sharma's personal portfolio.
+ 
+ 
+ 
