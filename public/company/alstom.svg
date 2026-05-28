@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Alstom">
+  <rect width="256" height="256" rx="44" fill="#041E42"/>
+  <path d="M48 170 112 70h32l64 100h-37l-10-18H95l-10 18H48Zm62-45h36l-18-31-18 31Z" fill="#fff"/>
+  <path d="M55 196h146" stroke="#00A3E0" stroke-width="12" stroke-linecap="round"/>
+</svg>

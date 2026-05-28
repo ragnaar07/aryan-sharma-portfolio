@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="Transformer predictive maintenance">
+  <rect width="1280" height="720" fill="#111827"/>
+  <path d="M142 541h996" stroke="#475569" stroke-width="8"/>
+  <rect x="180" y="250" width="210" height="290" rx="20" fill="#1d4ed8"/>
+  <rect x="235" y="175" width="100" height="95" rx="16" fill="#93c5fd"/>
+  <path d="M240 335h90M240 390h90M240 445h90" stroke="#bfdbfe" stroke-width="16" stroke-linecap="round"/>
+  <path d="M500 495c75-190 165-210 270-82s184 58 250-120" fill="none" stroke="#22c55e" stroke-width="20" stroke-linecap="round"/>
+  <circle cx="770" cy="413" r="16" fill="#facc15"/>
+  <circle cx="1020" cy="293" r="16" fill="#facc15"/>
+  <text x="500" y="260" fill="#f8fafc" font-family="Arial, sans-serif" font-size="58" font-weight="700">94% fault detection</text>
+  <text x="500" y="325" fill="#cbd5e1" font-family="Arial, sans-serif" font-size="34">XGBoost + SHAP pipeline</text>
+</svg>

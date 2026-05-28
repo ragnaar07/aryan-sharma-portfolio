@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="Audio processor">
+  <rect width="1280" height="720" fill="#0f172a"/>
+  <path d="M120 360h120l60-150 80 300 90-230 70 160 60-80h560" fill="none" stroke="#38bdf8" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="310" cy="360" r="90" fill="#1d4ed8" opacity=".55"/>
+  <circle cx="920" cy="360" r="130" fill="#22c55e" opacity=".2"/>
+  <text x="145" y="580" fill="#f8fafc" font-family="Arial, sans-serif" font-size="56" font-weight="700">Python Audio Processing</text>
+</svg>

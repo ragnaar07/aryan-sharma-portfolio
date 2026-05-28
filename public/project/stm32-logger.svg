@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="STM32 sensor data logger">
+  <rect width="1280" height="720" fill="#082f49"/>
+  <rect x="210" y="145" width="390" height="390" rx="36" fill="#e0f2fe"/>
+  <rect x="305" y="240" width="200" height="200" rx="24" fill="#03234B"/>
+  <path d="M170 230h40M170 340h40M170 450h40M600 230h40M600 340h40M600 450h40M295 105v40M405 105v40M515 105v40M295 535v40M405 535v40M515 535v40" stroke="#e0f2fe" stroke-width="18" stroke-linecap="round"/>
+  <rect x="730" y="185" width="330" height="290" rx="24" fill="#0f172a" stroke="#38bdf8" stroke-width="5"/>
+  <path d="M775 265h220M775 335h155M775 405h250" stroke="#f8fafc" stroke-width="18" stroke-linecap="round"/>
+  <path d="M640 340h90" stroke="#38bdf8" stroke-width="16" stroke-linecap="round" stroke-dasharray="22 22"/>
+  <text x="730" y="545" fill="#f8fafc" font-family="Arial, sans-serif" font-size="42" font-weight="700">UART to Linux daemon</text>
+</svg>

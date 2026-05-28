@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="Korn reduction technique">
+  <rect width="1280" height="720" fill="#312e81"/>
+  <circle cx="290" cy="220" r="58" fill="#c4b5fd"/>
+  <circle cx="290" cy="500" r="58" fill="#c4b5fd"/>
+  <circle cx="620" cy="360" r="76" fill="#f8fafc"/>
+  <circle cx="990" cy="360" r="58" fill="#c4b5fd"/>
+  <path d="M342 245 552 330M342 475l210-85M696 360h236" stroke="#a78bfa" stroke-width="20" stroke-linecap="round"/>
+  <path d="m775 306 95 54-95 54" fill="none" stroke="#f8fafc" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="235" y="640" fill="#f8fafc" font-family="Arial, sans-serif" font-size="58" font-weight="700">Korn Reduction Technique</text>
+</svg>

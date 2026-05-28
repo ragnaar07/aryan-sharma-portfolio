@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="AI automation pipeline">
+  <rect width="1280" height="720" fill="#052e16"/>
+  <rect x="120" y="250" width="230" height="160" rx="28" fill="#dcfce7"/>
+  <rect x="525" y="250" width="230" height="160" rx="28" fill="#bbf7d0"/>
+  <rect x="930" y="250" width="230" height="160" rx="28" fill="#86efac"/>
+  <path d="M360 330h150M765 330h150" stroke="#22c55e" stroke-width="18" stroke-linecap="round"/>
+  <path d="m495 300 40 30-40 30M900 300l40 30-40 30" fill="none" stroke="#22c55e" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="170" y="345" fill="#052e16" font-family="Arial, sans-serif" font-size="40" font-weight="700">Scrape</text>
+  <text x="565" y="345" fill="#052e16" font-family="Arial, sans-serif" font-size="40" font-weight="700">Embed</text>
+  <text x="972" y="345" fill="#052e16" font-family="Arial, sans-serif" font-size="40" font-weight="700">Summarize</text>
+  <text x="355" y="545" fill="#f0fdf4" font-family="Arial, sans-serif" font-size="54" font-weight="700">FastAPI + Hugging Face</text>
+</svg>

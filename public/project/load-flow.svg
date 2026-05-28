@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="Load flow study">
+  <rect width="1280" height="720" fill="#082f49"/>
+  <circle cx="270" cy="250" r="62" fill="#bae6fd"/>
+  <circle cx="640" cy="170" r="62" fill="#bae6fd"/>
+  <circle cx="1010" cy="295" r="62" fill="#bae6fd"/>
+  <circle cx="500" cy="505" r="62" fill="#bae6fd"/>
+  <circle cx="870" cy="520" r="62" fill="#bae6fd"/>
+  <path d="M330 238 580 180M700 190l250 85M306 303l160 160M555 500h250M907 475l75-125M676 220 528 452" stroke="#38bdf8" stroke-width="18" stroke-linecap="round"/>
+  <text x="320" y="655" fill="#f8fafc" font-family="Arial, sans-serif" font-size="58" font-weight="700">Load Flow Study</text>
+</svg>

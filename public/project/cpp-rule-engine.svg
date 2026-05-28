@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="C++ rule engine">
+  <rect width="1280" height="720" fill="#0f172a"/>
+  <rect x="120" y="105" width="1040" height="510" rx="28" fill="#111827" stroke="#38bdf8" stroke-width="4"/>
+  <path d="M245 230h290M245 310h410M245 390h330M245 470h470" stroke="#e2e8f0" stroke-width="24" stroke-linecap="round"/>
+  <path d="M825 210h190v190H825z" fill="#00599C"/>
+  <path d="M884 337c-35 0-60-23-60-56s25-56 60-56c22 0 39 10 49 25l-25 15c-5-8-13-13-24-13-17 0-29 12-29 29s12 29 29 29c11 0 19-5 24-13l25 15c-10 15-27 25-49 25Z" fill="#fff"/>
+  <path d="M944 274h15v-15h15v15h15v15h-15v15h-15v-15h-15v-15Zm-57 0h15v-15h15v15h15v15h-15v15h-15v-15h-15v-15Z" fill="#fff"/>
+  <text x="825" y="485" fill="#f8fafc" font-family="Arial, sans-serif" font-size="48" font-weight="700">Validation Middleware</text>
+</svg>
