@@ -19,4 +19,10 @@ export const mySkills = [
 export const about = {
   name: 'Aryan Sharma',
   description: `I'm an AI/ML-focused engineer with hands-on Python, machine learning, GenAI, automation, C++, and Linux experience. I build practical intelligent systems, from predictive maintenance and signal-processing pipelines to RAG-style assistants and production-grade validation software.`,
+  education: {
+    degree: 'B.Tech in Electrical Engineering',
+    institution: 'NIT Hamirpur',
+    startYear: '2021',
+    graduationYear: '2025',
+  },
 };

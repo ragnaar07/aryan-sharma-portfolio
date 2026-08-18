@@ -11,13 +11,10 @@ import {
 } from '@/components/ui/expandable-chat';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { about } from '@/config/About';
 import { chatSuggestions } from '@/config/ChatPrompt';
-import { experiences } from '@/config/Experience';
 import { heroConfig } from '@/config/Hero';
-import { projects } from '@/config/Projects';
-import { socialLinks } from '@/config/Hero';
 import { useHapticFeedback } from '@/hooks/use-haptic-feedback';
+import { getPortfolioFallback } from '@/lib/chat-knowledge';
 import { cn } from '@/lib/utils';
 import React, { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
@@ -47,81 +44,6 @@ const initialMessages: Message[] = [
     timestamp: 'Now',
   },
 ];
-
-function getLocalResponse(message: string): string {
-  const lower = message.toLowerCase();
-  const skills = heroConfig.skills.map((skill) => skill.name).join(', ');
-  const email = socialLinks.find((link) => link.name === 'Email')?.href ?? '';
-  const github = socialLinks.find((link) => link.name === 'Github')?.href ?? '';
-  const linkedIn =
-    socialLinks.find((link) => link.name === 'LinkedIn')?.href ?? '';
-
-  if (
-    lower.includes('skill') ||
-    lower.includes('tech') ||
-    lower.includes('stack') ||
-    lower.includes('ai') ||
-    lower.includes('ml') ||
-    lower.includes('work with')
-  ) {
-    return `I focus on AI/ML and production software. Core skills: **${skills}**, plus C++ systems work, Linux, automation, and industrial software validation.`;
-  }
-
-  if (
-    lower.includes('contact') ||
-    lower.includes('hire') ||
-    lower.includes('reach') ||
-    lower.includes('connect') ||
-    lower.includes('message') ||
-    lower.includes('call') ||
-    lower.includes('email') ||
-    lower.includes('work together')
-  ) {
-    return [
-      'Best way to reach me:',
-      `- **Email**: [aryan.engineer783@gmail.com](${email}) for roles, project details, or collaboration notes.`,
-      `- **LinkedIn**: [aryansh7](${linkedIn}) for professional updates and quick outreach.`,
-      `- **GitHub**: [ragnaar07](${github}) to review my public projects.`,
-      '',
-      'For a useful first message, include the role/project, timeline, tech stack, and expected next step.',
-    ].join('\n');
-  }
-
-  if (
-    lower.includes('project') ||
-    lower.includes('github') ||
-    lower.includes('repo')
-  ) {
-    const projectList = projects
-      .slice(0, 4)
-      .map((project) => `- [${project.title}](${project.github ?? project.link})`)
-      .join('\n');
-
-    return `My public GitHub projects include:\n${projectList}`;
-  }
-
-  if (
-    lower.includes('experience') ||
-    lower.includes('alstom') ||
-    lower.includes('job') ||
-    lower.includes('intern')
-  ) {
-    const experienceList = experiences
-      .map(
-        (experience) =>
-          `- ${experience.position} at ${experience.company} (${experience.startDate} - ${experience.endDate})`,
-      )
-      .join('\n');
-
-    return `My experience:\n${experienceList}`;
-  }
-
-  if (lower.includes('resume') || lower.includes('cv')) {
-    return 'You can view my systems resume and AI/ML CV on the [Resume page](/resume).';
-  }
-
-  return `${about.description} Ask me about my AI/ML skills, projects, work experience, resume, or contact details.`;
-}
 
 const ChatBubble: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
@@ -237,7 +159,8 @@ const ChatBubble: React.FC = () => {
       }
 
       const data = (await response.json()) as { text?: string };
-      const responseText = data.text?.trim() || getLocalResponse(messageText);
+      const responseText =
+        data.text?.trim() || getPortfolioFallback(messageText);
 
       setMessages((prev) =>
         prev.map((msg) =>
@@ -249,7 +172,7 @@ const ChatBubble: React.FC = () => {
       setIsLoading(false);
       setNewMessage('');
     } catch {
-      const responseText = getLocalResponse(messageText);
+      const responseText = getPortfolioFallback(messageText);
 
       setMessages((prev) =>
         prev.map((msg) =>
