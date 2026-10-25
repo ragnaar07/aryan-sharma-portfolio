@@ -1,0 +1,114 @@
+---
+title: "Modern Data Fetching Patterns in Next.js App Router"
+description: "An architectural guide to data fetching in Next.js App Router using React Server Components, extended fetch caching, and granular revalidation."
+date: "2026-03-15"
+tags: ["Next.js", "React", "TypeScript", "Web Architecture"]
+isPublished: true
+image: "/blog/nextjs-data-fetching.png"
+---
+
+## Introduction
+
+The Next.js App Router shifts the data fetching paradigm from legacy page-level lifecycle methods like `getServerSideProps` and `getStaticProps` directly into React Server Components (RSC). By fetching data on the server close to the database or downstream services, applications reduce client bundle sizes, eliminate client-side waterfall requests, and benefit from unified caching primitives.
+
+## 1. Fetching Directly inside Server Components
+
+In the App Router, every component inside the `app` directory is a Server Component by default unless explicitly tagged with `'use client'`. This allows using async/await syntax directly within component declarations:
+
+```tsx
+interface ProjectData {
+  id: string;
+  name: string;
+  description: string;
+  stars: number;
+}
+
+async function getProjectMetrics(slug: string): Promise<ProjectData> {
+  const response = await fetch(`https://api.example.com/projects/${slug}`, {
+    next: { revalidate: 3600 }, // Time-based revalidation in seconds
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch metrics: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export default async function ProjectPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const project = await getProjectMetrics(slug);
+
+  return (
+    <article className="space-y-4">
+      <h1 className="text-3xl font-bold">{project.name}</h1>
+      <p className="text-muted-foreground">{project.description}</p>
+      <div className="font-mono text-sm">Stars: {project.stars}</div>
+    </article>
+  );
+}
+```
+
+## 2. Granular Caching and Revalidation
+
+Next.js extends the native `fetch` Web API with custom cache control options:
+
+### Time-Based Revalidation (ISR)
+Setting `{ next: { revalidate: 60 } }` caches the response and automatically re-fetches in the background when requests arrive after the expiration window:
+
+```typescript
+// Revalidate every 10 minutes
+const res = await fetch('https://api.example.com/feed', {
+  next: { revalidate: 600 },
+});
+```
+
+### Tag-Based On-Demand Revalidation
+By tagging requests, mutations in server actions or webhook handlers can immediately purge specific cache entries:
+
+```typescript
+// Query tagged with 'portfolio-projects'
+const res = await fetch('https://api.example.com/projects', {
+  next: { tags: ['portfolio-projects'] },
+});
+```
+
+To purge the cache from a Server Action:
+
+```typescript
+'use server';
+
+import { revalidateTag } from 'next/cache';
+
+export async function handleProjectMutation() {
+  // Database update logic...
+  revalidateTag('portfolio-projects');
+}
+```
+
+## 3. Parallel Data Fetching with Suspense
+
+To prevent slow requests from blocking the initial page render, wrap independent asynchronous components with React `<Suspense>` boundaries:
+
+```tsx
+import { Suspense } from 'react';
+
+export default function Dashboard() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <Suspense fallback={<MetricsSkeleton />}>
+        <AsyncMetrics />
+      </Suspense>
+      <Suspense fallback={<ActivitySkeleton />}>
+        <AsyncActivityStream />
+      </Suspense>
+    </div>
+  );
+}
+```
+
+This streaming architecture allows the shell and fast content to stream to the browser immediately while slower API responses progressively hydrate when resolved.

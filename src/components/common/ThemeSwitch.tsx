@@ -3,10 +3,32 @@
 import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
 import React, { useCallback, useEffect, useState } from 'react';
+import { flushSync } from 'react-dom';
 
 import Moon from '../svgs/Moon';
 import Sun from '../svgs/Sun';
 import { Button } from '../ui/button';
+
+const runWithViewTransition = (updateFn: () => void) => {
+  if (typeof document === 'undefined' || !document.startViewTransition) {
+    updateFn();
+    return;
+  }
+
+  try {
+    const transition = document.startViewTransition(() => {
+      flushSync(() => {
+        updateFn();
+      });
+    });
+
+    transition?.ready?.catch(() => {});
+    transition?.updateCallbackDone?.catch(() => {});
+    transition?.finished?.catch(() => {});
+  } catch {
+    updateFn();
+  }
+};
 
 export const useThemeToggle = ({
   variant = 'circle',
@@ -61,12 +83,7 @@ export const useThemeToggle = ({
       setTheme(theme === 'light' ? 'dark' : 'light');
     };
 
-    if (!document.startViewTransition) {
-      switchTheme();
-      return;
-    }
-
-    document.startViewTransition(switchTheme);
+    runWithViewTransition(switchTheme);
   }, [
     theme,
     setTheme,
@@ -92,12 +109,7 @@ export const useThemeToggle = ({
       setTheme('light');
     };
 
-    if (!document.startViewTransition) {
-      switchTheme();
-      return;
-    }
-
-    document.startViewTransition(switchTheme);
+    runWithViewTransition(switchTheme);
   }, [setTheme, variant, start, blur, gifUrl, updateStyles, setIsDark]);
 
   const setCrazyDarkTheme = useCallback(() => {
@@ -113,12 +125,7 @@ export const useThemeToggle = ({
       setTheme('dark');
     };
 
-    if (!document.startViewTransition) {
-      switchTheme();
-      return;
-    }
-
-    document.startViewTransition(switchTheme);
+    runWithViewTransition(switchTheme);
   }, [setTheme, variant, start, blur, gifUrl, updateStyles, setIsDark]);
 
   return {
@@ -173,11 +180,7 @@ export const ThemeToggleButton = ({
 // ///////////////////////////////////////////////////////////////////////////
 
 export type AnimationVariant =
-  | 'circle'
-  | 'rectangle'
-  | 'gif'
-  | 'polygon'
-  | 'circle-blur';
+  'circle' | 'rectangle' | 'gif' | 'polygon' | 'circle-blur';
 export type AnimationStart =
   | 'top-left'
   | 'top-right'

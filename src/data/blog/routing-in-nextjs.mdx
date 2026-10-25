@@ -1,0 +1,89 @@
+---
+title: "Understanding Next.js App Router Architecture and Dynamic Routing"
+description: "A comprehensive breakdown of folder-based routing, nested layouts, parallel slots, and route handlers in the Next.js App Router."
+date: "2026-03-20"
+tags: ["Next.js", "React", "Frontend", "Architecture"]
+isPublished: true
+image: "/blog/routing-in-nextjs.png"
+---
+
+## Overview
+
+The Next.js App Router uses a file-system based routing mechanism where folders define routes and specialized files (`page.tsx`, `layout.tsx`, `loading.tsx`, `error.tsx`) define the UI and behavior for each segment.
+
+## 1. Special File Hierarchy
+
+Each segment in a route hierarchy maps to distinct lifecycle boundaries:
+
+- `layout.tsx`: Persistent UI that wraps child segments and preserves state across navigations.
+- `page.tsx`: The unique public UI view for the route.
+- `loading.tsx`: Instant fallback UI created with React Suspense.
+- `error.tsx`: Runtime error boundary catching errors in child trees.
+- `not-found.tsx`: UI rendered when `notFound()` is invoked.
+
+```text
+src/app/
+├── layout.tsx         # Root layout wrapping entire application
+├── page.tsx           # Home page ("/")
+├── blog/
+│   ├── page.tsx       # Blog listing ("/blog")
+│   └── [slug]/
+│       └── page.tsx   # Dynamic blog post ("/blog/:slug")
+```
+
+## 2. Dynamic Route Segments
+
+Dynamic segments are created by wrapping a folder name in brackets, such as `[slug]`. In Next.js 15, route parameters are provided as an asynchronous `params` Promise:
+
+```tsx
+interface PostParams {
+  params: Promise<{ slug: string }>;
+}
+
+export default async function BlogPostPage({ params }: PostParams) {
+  const { slug } = await params;
+  const post = await fetchPost(slug);
+
+  if (!post) {
+    notFound();
+  }
+
+  return (
+    <main className="container py-8">
+      <h1 className="text-4xl font-bold">{post.title}</h1>
+      <div className="prose mt-6">{post.content}</div>
+    </main>
+  );
+}
+```
+
+## 3. Static Parameter Generation (`generateStaticParams`)
+
+For high-performance static rendering, `generateStaticParams` precomputes routes at build time:
+
+```typescript
+export async function generateStaticParams() {
+  const posts = await getAllPublishedPosts();
+
+  return posts.map((post) => ({
+    slug: post.slug,
+  }));
+}
+```
+
+This guarantees static HTML generation with instant cache delivery, while dynamic routes not generated at build time can still be rendered on demand.
+
+## 4. Route Groups and Organizaton
+
+To organize routes without affecting the public URL path, wrap folder names in parentheses:
+
+```text
+src/app/
+├── (marketing)
+│   ├── about/page.tsx     # Resolves to "/about"
+│   └── contact/page.tsx   # Resolves to "/contact"
+└── (dashboard)
+    └── settings/page.tsx  # Resolves to "/settings"
+```
+
+Route groups let you define isolated layouts for different sections of the app without altering URL paths.

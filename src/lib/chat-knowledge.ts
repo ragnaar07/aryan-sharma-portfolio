@@ -49,7 +49,9 @@ function getRelevantProjects(message: string) {
       .some(
         (word) =>
           lower.includes(word) ||
-          (word.length > 4 && description.includes(word) && lower.includes(word)),
+          (word.length > 4 &&
+            description.includes(word) &&
+            lower.includes(word)),
       );
   });
 }
@@ -97,6 +99,7 @@ export function getPortfolioKnowledgeContext() {
     `EXPERIENCE:\n- ${experienceText}`,
     `PROJECTS:\n- ${projectText}`,
     `CERTIFICATES:\n- ${certificateText}`,
+    `BLOG: Technical articles, tutorials, and architecture guides on the [Blog page](/blog).`,
     `SOCIAL LINKS:\n- ${socialLinksText}`,
   ].join('\n\n');
 }
@@ -266,7 +269,22 @@ export function getPortfolioFallback(message: string) {
     return `You can view my systems resume and AI/ML CV on the [Resume page](/resume). Direct files: [Resume](${resumeConfig.resumeUrl}) and [AI/ML CV](${resumeConfig.cvUrl}).`;
   }
 
-  return `${about.description} Ask me about my education, AI/ML skills, projects, work experience, certificates, resume, or contact details.`;
+  if (
+    includesAny(lower, [
+      'blog',
+      'article',
+      'articles',
+      'post',
+      'posts',
+      'writing',
+      'tutorial',
+      'tutorials',
+    ])
+  ) {
+    return 'You can explore my technical articles and tutorials covering Next.js architecture, data fetching, and software engineering on the [Blog page](/blog).';
+  }
+
+  return `${about.description} Ask me about my education, AI/ML skills, projects, work experience, certificates, blog posts, resume, or contact details.`;
 }
 
 export function hasPortfolioIntent(message: string) {
@@ -298,6 +316,15 @@ export function hasPortfolioIntent(message: string) {
     'repo',
     'portfolio',
     'built',
+    'blog',
+    'blogs',
+    'article',
+    'articles',
+    'post',
+    'posts',
+    'writing',
+    'tutorial',
+    'tutorials',
     'experience',
     'alstom',
     'sjvn',
