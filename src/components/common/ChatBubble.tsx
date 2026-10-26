@@ -229,7 +229,10 @@ const ChatBubble: React.FC = () => {
                 <div className="flex items-start space-x-2">
                   {message.sender === 'bot' && (
                     <Avatar className="border-primary h-6 w-6 border-2 bg-blue-300 dark:bg-yellow-300">
-                      <AvatarImage src="/assets/profile-avatar.jpg" alt="Assistant" />
+                      <AvatarImage
+                        src="/assets/profile-avatar.jpg"
+                        alt="Assistant"
+                      />
                       <AvatarFallback>AI</AvatarFallback>
                     </Avatar>
                   )}

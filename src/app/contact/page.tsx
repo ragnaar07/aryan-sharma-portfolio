@@ -5,7 +5,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { contactConfig } from '@/config/Contact';
 import { generateMetadata as getMetadata } from '@/config/Meta';
-import { Github, Linkedin, Mail, MapPin, MessageSquare, Timer } from 'lucide-react';
+import {
+  Github,
+  Linkedin,
+  Mail,
+  MapPin,
+  MessageSquare,
+  Timer,
+} from 'lucide-react';
 import { Metadata } from 'next';
 import Link from 'next/link';
 import React from 'react';
@@ -58,13 +65,21 @@ export default function ContactPage() {
                       {contactConfig.email}
                     </Link>
                   </Button>
-                  <Button asChild variant="outline" className="w-full justify-start">
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="w-full justify-start"
+                  >
                     <Link href={contactConfig.linkedin} target="_blank">
                       <Linkedin className="mr-2 h-4 w-4" />
                       LinkedIn
                     </Link>
                   </Button>
-                  <Button asChild variant="outline" className="w-full justify-start">
+                  <Button
+                    asChild
+                    variant="outline"
+                    className="w-full justify-start"
+                  >
                     <Link href={contactConfig.github} target="_blank">
                       <Github className="mr-2 h-4 w-4" />
                       GitHub

@@ -6,7 +6,8 @@ export const contactConfig = {
   github: 'https://github.com/ragnaar07',
   linkedin: 'https://www.linkedin.com/in/aryansh7/',
   location: 'India',
-  availability: 'Open to AI/ML, software engineering, and automation opportunities',
+  availability:
+    'Open to AI/ML, software engineering, and automation opportunities',
   responseTime: 'Usually responds within 24-48 hours',
   form: {
     labels: {

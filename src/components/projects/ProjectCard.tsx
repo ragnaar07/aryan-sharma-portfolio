@@ -29,7 +29,9 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project }: ProjectCardProps) {
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
-  const titleHref = project.details ? project.projectDetailsPageSlug : project.link;
+  const titleHref = project.details
+    ? project.projectDetailsPageSlug
+    : project.link;
   const isExternalTitle = titleHref.startsWith('http');
 
   return (

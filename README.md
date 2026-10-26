@@ -125,7 +125,3 @@ Before deploying:
 ## License
 
 This repository contains Aryan Sharma's personal portfolio.
- 
- 
- 
- 

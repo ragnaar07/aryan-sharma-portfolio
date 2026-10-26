@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="Agentic AI Bootcamp with LangGraph and LangChain Certificate">
+  <defs>
+    <linearGradient id="bgGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0a1c"/>
+      <stop offset="50%" stop-color="#140f28"/>
+      <stop offset="100%" stop-color="#1e0c2b"/>
+    </linearGradient>
+    <linearGradient id="cardGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e1838" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#110d24" stop-opacity="0.9"/>
+    </linearGradient>
+    <linearGradient id="purpleGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#a855f7"/>
+      <stop offset="100%" stop-color="#ec4899"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="1280" height="720" fill="url(#bgGrad2)"/>
+  <rect x="40" y="40" width="1200" height="640" rx="24" fill="url(#cardGrad2)" stroke="#38225e" stroke-width="2"/>
+  <rect x="52" y="52" width="1176" height="616" rx="18" fill="none" stroke="#a855f7" stroke-opacity="0.25" stroke-dasharray="8 8"/>
+
+  <!-- Left: LangGraph Cyclic State Graph Graphic -->
+  <g transform="translate(100, 140)">
+    <rect width="360" height="440" rx="20" fill="#0c0a1a" stroke="#8b5cf6" stroke-width="2"/>
+    
+    <!-- Central Agent Core Hub -->
+    <circle cx="180" cy="220" r="48" fill="#1e1338" stroke="#a855f7" stroke-width="3"/>
+    <text x="180" y="215" fill="#f3e8ff" font-family="system-ui, sans-serif" font-size="14" font-weight="700" text-anchor="middle">AGENTIC</text>
+    <text x="180" y="235" fill="#c084fc" font-family="system-ui, sans-serif" font-size="14" font-weight="700" text-anchor="middle">CORE</text>
+
+    <!-- Node 1: Planner (Top) -->
+    <rect x="120" y="40" width="120" height="48" rx="12" fill="#2e1065" stroke="#c084fc" stroke-width="2"/>
+    <text x="180" y="70" fill="#f5d0fe" font-family="system-ui, sans-serif" font-size="14" font-weight="700" text-anchor="middle">1. Planner</text>
+
+    <!-- Node 2: Tool Calling (Right) -->
+    <rect x="235" y="196" width="110" height="48" rx="12" fill="#2e1065" stroke="#ec4899" stroke-width="2"/>
+    <text x="290" y="226" fill="#fbcfe8" font-family="system-ui, sans-serif" font-size="13" font-weight="700" text-anchor="middle">2. Tool Call</text>
+
+    <!-- Node 3: Execution / Memory (Bottom) -->
+    <rect x="115" y="350" width="130" height="48" rx="12" fill="#2e1065" stroke="#06b6d4" stroke-width="2"/>
+    <text x="180" y="380" fill="#cffafe" font-family="system-ui, sans-serif" font-size="13" font-weight="700" text-anchor="middle">3. Memory / State</text>
+
+    <!-- Node 4: Evaluator (Left) -->
+    <rect x="15" y="196" width="110" height="48" rx="12" fill="#2e1065" stroke="#a855f7" stroke-width="2"/>
+    <text x="70" y="226" fill="#f3e8ff" font-family="system-ui, sans-serif" font-size="13" font-weight="700" text-anchor="middle">4. Evaluator</text>
+
+    <!-- Directed Workflow Arrows (Cyclic Graph) -->
+    <path d="M240 64 Q290 64 290 190" fill="none" stroke="#ec4899" stroke-width="3" stroke-linecap="round"/>
+    <path d="M290 250 Q290 374 250 374" fill="none" stroke="#06b6d4" stroke-width="3" stroke-linecap="round"/>
+    <path d="M115 374 Q70 374 70 250" fill="none" stroke="#a855f7" stroke-width="3" stroke-linecap="round"/>
+    <path d="M70 190 Q70 64 115 64" fill="none" stroke="#c084fc" stroke-width="3" stroke-linecap="round"/>
+  </g>
+
+  <!-- Right: Certificate Typography & Details -->
+  <g transform="translate(510, 140)">
+    <!-- Top Credential Pill -->
+    <rect x="0" y="0" width="300" height="34" rx="17" fill="#3b0764" stroke="#a855f7" stroke-width="1.5"/>
+    <text x="150" y="22" fill="#e9d5ff" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" text-anchor="middle" letter-spacing="2">ADVANCED SPECIALIZATION</text>
+
+    <!-- Main Title -->
+    <text x="0" y="85" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="38" font-weight="800">Complete Agentic AI</text>
+    <text x="0" y="132" fill="url(#purpleGlow)" font-family="system-ui, -apple-system, sans-serif" font-size="36" font-weight="800">with LangGraph &amp; LangChain</text>
+    
+    <!-- Subtitle -->
+    <text x="0" y="180" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="20">Autonomous Workflows, Multi-Agent Teams &amp; State Machines</text>
+
+    <!-- Issuer Section -->
+    <line x1="0" y1="215" x2="670" y2="215" stroke="#334155" stroke-width="1.5"/>
+    <text x="0" y="255" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" letter-spacing="1">ISSUED BY</text>
+    <text x="0" y="285" fill="#e2e8f0" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700">Krish Naik, KRISHAI Technologies (Udemy)</text>
+
+    <!-- Skill Chips -->
+    <g transform="translate(0, 325)">
+      <rect x="0" y="0" width="105" height="32" rx="8" fill="#2e1065" stroke="#581c87"/>
+      <text x="52" y="20" fill="#e9d5ff" font-family="system-ui, sans-serif" font-size="13" font-weight="600" text-anchor="middle">LangGraph</text>
+
+      <rect x="117" y="0" width="105" height="32" rx="8" fill="#2e1065" stroke="#581c87"/>
+      <text x="169" y="20" fill="#e9d5ff" font-family="system-ui, sans-serif" font-size="13" font-weight="600" text-anchor="middle">LangChain</text>
+
+      <rect x="234" y="0" width="115" height="32" rx="8" fill="#2e1065" stroke="#581c87"/>
+      <text x="291" y="20" fill="#e9d5ff" font-family="system-ui, sans-serif" font-size="13" font-weight="600" text-anchor="middle">State Graphs</text>
+
+      <rect x="361" y="0" width="115" height="32" rx="8" fill="#2e1065" stroke="#581c87"/>
+      <text x="418" y="20" fill="#e9d5ff" font-family="system-ui, sans-serif" font-size="13" font-weight="600" text-anchor="middle">Multi-Agent</text>
+
+      <rect x="488" y="0" width="75" height="32" rx="8" fill="#2e1065" stroke="#581c87"/>
+      <text x="525" y="20" fill="#e9d5ff" font-family="system-ui, sans-serif" font-size="13" font-weight="600" text-anchor="middle">RAG</text>
+    </g>
+
+    <!-- Issue Date & Verification -->
+    <text x="0" y="415" fill="#a855f7" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="600">✓ Verified Credential • Issued May 21, 2026</text>
+  </g>
+</svg>

@@ -3,145 +3,270 @@
 import { BlogList } from '@/components/blog/BlogList';
 import Container from '@/components/common/Container';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useHapticFeedback } from '@/hooks/use-haptic-feedback';
 import { BlogPostPreview } from '@/types/blog';
+import { FilterX } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface BlogPageClientProps {
   initialPosts: BlogPostPreview[];
-  initialTags: string[];
+  initialTags?: string[];
 }
 
-const getBlogPostsByTagClient = (
-  posts: BlogPostPreview[],
-  tag: string,
-): BlogPostPreview[] => {
-  return posts.filter((post) =>
-    post.frontmatter.tags.some(
-      (postTag) => postTag.toLowerCase() === tag.toLowerCase(),
-    ),
-  );
-};
-
-export function BlogPageClient({
-  initialPosts,
-  initialTags,
-}: BlogPageClientProps) {
+export function BlogPageClient({ initialPosts }: BlogPageClientProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { triggerHaptic, isMobile } = useHapticFeedback();
 
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
-  const [filteredPosts, setFilteredPosts] = useState(initialPosts);
 
-  // Get tag from URL params on mount
+  // Sync state with URL params
   useEffect(() => {
+    const categoryParam = searchParams.get('category');
     const tagParam = searchParams.get('tag');
-    if (tagParam) {
-      setSelectedTag(tagParam);
-      const filtered = getBlogPostsByTagClient(initialPosts, tagParam);
-      setFilteredPosts(filtered);
-    } else {
-      setSelectedTag(null);
-      setFilteredPosts(initialPosts);
-    }
-  }, [searchParams, initialPosts]);
 
-  // Handle tag click
+    setSelectedCategory(categoryParam);
+    setSelectedTag(tagParam);
+  }, [searchParams]);
+
+  // Extract unique categories with counts
+  const categoriesWithCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const post of initialPosts) {
+      const cat = post.frontmatter.category || 'Engineering';
+      counts[cat] = (counts[cat] || 0) + 1;
+    }
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }, [initialPosts]);
+
+  // Extract unique tags with counts
+  const tagsWithCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const post of initialPosts) {
+      for (const tag of post.frontmatter.tags) {
+        const lower = tag.toLowerCase();
+        counts[lower] = (counts[lower] || 0) + 1;
+      }
+    }
+    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  }, [initialPosts]);
+
+  // Helper to update URL query params client-side without full reload
+  const updateUrl = useCallback(
+    (newCategory: string | null, newTag: string | null) => {
+      const params = new URLSearchParams();
+      if (newCategory) params.set('category', newCategory);
+      if (newTag) params.set('tag', newTag);
+
+      const qs = params.toString();
+      const newPath = qs ? `/blog?${qs}` : '/blog';
+      router.replace(newPath, { scroll: false });
+    },
+    [router],
+  );
+
+  // Handle Category selection
+  const handleCategoryClick = (category: string | null) => {
+    if (isMobile()) triggerHaptic('light');
+
+    const nextCategory = selectedCategory === category ? null : category;
+    setSelectedCategory(nextCategory);
+    updateUrl(nextCategory, selectedTag);
+  };
+
+  // Handle Tag selection
   const handleTagClick = (tag: string) => {
-    if (isMobile()) {
-      triggerHaptic('light');
-    }
+    if (isMobile()) triggerHaptic('light');
 
-    if (selectedTag === tag) {
-      setSelectedTag(null);
-      setFilteredPosts(initialPosts);
-      router.replace('/blog');
-    } else {
-      setSelectedTag(tag);
-      const filtered = getBlogPostsByTagClient(initialPosts, tag);
-      setFilteredPosts(filtered);
-      router.replace(`/blog?tag=${encodeURIComponent(tag)}`);
-    }
+    const nextTag = selectedTag === tag ? null : tag;
+    setSelectedTag(nextTag);
+    updateUrl(selectedCategory, nextTag);
   };
 
-  const getTagPostCount = (tag: string) => {
-    return initialPosts.filter((post) =>
-      post.frontmatter.tags.some(
-        (postTag) => postTag.toLowerCase() === tag.toLowerCase(),
-      ),
-    ).length;
+  // Clear all filters
+  const handleClearFilters = () => {
+    if (isMobile()) triggerHaptic('light');
+    setSelectedCategory(null);
+    setSelectedTag(null);
+    router.replace('/blog', { scroll: false });
   };
+
+  // Client-side filtering
+  const filteredPosts = useMemo(() => {
+    return initialPosts.filter((post) => {
+      const postCategory = (
+        post.frontmatter.category || 'Engineering'
+      ).toLowerCase();
+      const matchesCategory =
+        !selectedCategory || postCategory === selectedCategory.toLowerCase();
+
+      const matchesTag =
+        !selectedTag ||
+        post.frontmatter.tags.some(
+          (t) => t.toLowerCase() === selectedTag.toLowerCase(),
+        );
+
+      return matchesCategory && matchesTag;
+    });
+  }, [initialPosts, selectedCategory, selectedTag]);
+
+  const hasActiveFilters = Boolean(selectedCategory || selectedTag);
 
   return (
     <Container className="py-16">
-      <div className="space-y-8">
+      <div className="space-y-10">
         {/* Header */}
         <div className="space-y-4 text-center">
-          <h1 className="text-4xl font-bold tracking-tight lg:text-5xl">
-            Blogs
+          <h1 className="text-foreground text-4xl font-bold tracking-tight lg:text-5xl">
+            Blog
           </h1>
           <p className="text-muted-foreground mx-auto max-w-2xl text-lg">
-            Thoughts, tutorials, and insights on engineering, and programming.
+            Technical writing, deep dives, and architectural notes on software
+            engineering, AI/ML, and system design.
           </p>
         </div>
 
         <Separator />
 
-        {/* Tags */}
-        {initialTags.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold">Popular Tags</h2>
-              {selectedTag && (
-                <button
-                  onClick={() => handleTagClick(selectedTag)}
-                  className="text-muted-foreground hover:text-foreground text-sm underline"
-                >
-                  Clear filter
-                </button>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {initialTags.map((tag) => {
-                const postCount = getTagPostCount(tag);
-                const isSelected = selectedTag === tag;
-                return (
-                  <button
-                    key={tag}
-                    onClick={() => handleTagClick(tag)}
-                    className="transition-colors"
+        {/* Filter Controls (Client-side, preserves static caching) */}
+        <div className="space-y-6">
+          {/* Categories */}
+          {categoriesWithCounts.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
+                  Categories
+                </h2>
+                {hasActiveFilters && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleClearFilters}
+                    className="text-muted-foreground hover:text-foreground h-7 text-xs"
                   >
-                    <Badge
-                      variant={isSelected ? 'default' : 'outline'}
-                      className="hover:bg-accent hover:text-accent-foreground tag-inner-shadow cursor-pointer capitalize"
-                    >
-                      {tag} ({postCount})
-                    </Badge>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                    <FilterX className="mr-1.5 size-3.5" />
+                    Reset filters
+                  </Button>
+                )}
+              </div>
 
-        {/* Blog Posts */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleCategoryClick(null)}
+                  className="transition-colors focus:outline-none"
+                >
+                  <Badge
+                    variant={!selectedCategory ? 'default' : 'outline'}
+                    className="cursor-pointer px-3 py-1 text-xs"
+                  >
+                    All ({initialPosts.length})
+                  </Badge>
+                </button>
+
+                {categoriesWithCounts.map(([catName, count]) => {
+                  const isSelected =
+                    selectedCategory?.toLowerCase() === catName.toLowerCase();
+                  return (
+                    <button
+                      key={catName}
+                      type="button"
+                      onClick={() => handleCategoryClick(catName)}
+                      className="transition-colors focus:outline-none"
+                    >
+                      <Badge
+                        variant={isSelected ? 'default' : 'outline'}
+                        className="cursor-pointer px-3 py-1 text-xs"
+                      >
+                        {catName} ({count})
+                      </Badge>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Tags */}
+          {tagsWithCounts.length > 0 && (
+            <div className="space-y-3">
+              <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
+                Tags
+              </h2>
+              <div className="flex flex-wrap gap-2">
+                {tagsWithCounts.map(([tag, count]) => {
+                  const isSelected =
+                    selectedTag?.toLowerCase() === tag.toLowerCase();
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => handleTagClick(tag)}
+                      className="transition-colors focus:outline-none"
+                    >
+                      <Badge
+                        variant={isSelected ? 'secondary' : 'outline'}
+                        className={`cursor-pointer px-2.5 py-1 text-xs capitalize ${
+                          isSelected
+                            ? 'border-primary/50 bg-primary/10 text-primary font-medium'
+                            : 'text-muted-foreground'
+                        }`}
+                      >
+                        #{tag} ({count})
+                      </Badge>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <Separator />
+
+        {/* Blog Posts Grid */}
         <div className="space-y-6">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-semibold">
-              {selectedTag ? `Posts tagged "${selectedTag}"` : 'Latest Posts'}
-              {filteredPosts.length > 0 && (
-                <span className="text-muted-foreground ml-2 text-sm font-normal">
-                  ({filteredPosts.length}{' '}
-                  {filteredPosts.length === 1 ? 'post' : 'posts'})
+            <h2 className="text-foreground text-xl font-semibold">
+              {hasActiveFilters ? (
+                <span>
+                  Filtered Articles{' '}
+                  <span className="text-muted-foreground text-sm font-normal">
+                    ({filteredPosts.length}{' '}
+                    {filteredPosts.length === 1 ? 'post' : 'posts'})
+                  </span>
+                </span>
+              ) : (
+                <span>
+                  All Articles{' '}
+                  <span className="text-muted-foreground text-sm font-normal">
+                    ({initialPosts.length}{' '}
+                    {initialPosts.length === 1 ? 'post' : 'posts'})
+                  </span>
                 </span>
               )}
             </h2>
           </div>
 
-          <BlogList posts={filteredPosts} />
+          {filteredPosts.length === 0 ? (
+            <div className="border-border flex min-h-[300px] flex-col items-center justify-center space-y-4 rounded-xl border border-dashed p-8 text-center">
+              <p className="text-foreground text-lg font-medium">
+                No articles match your current filters
+              </p>
+              <p className="text-muted-foreground text-sm">
+                Try selecting a different category or tag, or reset all filters.
+              </p>
+              <Button variant="outline" size="sm" onClick={handleClearFilters}>
+                Reset all filters
+              </Button>
+            </div>
+          ) : (
+            <BlogList posts={filteredPosts} />
+          )}
         </div>
       </div>
     </Container>

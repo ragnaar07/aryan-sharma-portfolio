@@ -7,8 +7,8 @@ import { Separator } from '@/components/ui/separator';
 import { siteConfig } from '@/config/Meta';
 import {
   getProjectCaseStudyBySlug,
-  getPublishedProjectCaseStudies,
   getProjectNavigation,
+  getPublishedProjectCaseStudies,
   getRelatedProjectCaseStudies,
 } from '@/lib/project';
 import { Metadata } from 'next';

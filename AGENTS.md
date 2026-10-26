@@ -13,11 +13,29 @@ This repository contains the personal portfolio of **Aryan Sharma**, focused on 
   - `About.tsx`: Education, background, and summary.
   - `Resume.ts`: Resume & CV file references.
   - `ChatPrompt.ts`: Assistant system prompt and suggested quick questions.
+  - `BlogAdmin.ts`: Blog categories, post limits, and admin UI labels.
 - `src/lib/`:
   - `chat-knowledge.ts`: Knowledge retrieval and fallback query matching for the portfolio chat assistant.
-  - `blog.ts`: MDX loader, slug resolution, and metadata parser for articles.
-- `src/app/`: Next.js 15 App Router pages and `/api/chat` route.
-- `src/components/`: Radix/Shadcn primitives in `ui/`, section blocks in `landing/`, tech icons in `technologies/`.
+  - `blog.ts`: Merge layer combining Redis and local file posts with conflict resolution and public/admin APIs.
+  - `blog-file-loader.ts`: Fallback file loader for local MDX articles in `src/data/blog/`.
+  - `redis-posts.ts`: Upstash Redis persistence layer for database-backed posts.
+  - `blog-validation.ts`: Zod schema input validation and YouTube URL extractor.
+  - `blog-reading-time.ts`: Word-count-based reading time calculation.
+  - `blog-toc.ts`: Heading anchor extractor and slugifier for table of contents.
+  - `auth-guard.ts`: `requireAdmin` server-only session check and authorization gate.
+- `src/app/`: Next.js 15 App Router pages, `/api/chat` route, dynamic `/sitemap.xml`, and `/robots.txt`.
+  - `admin/`: Admin dashboard (`/admin`), creation editor (`/admin/posts/new`), and edit editor (`/admin/posts/[slug]/edit`).
+  - `admin/actions.ts`: Authenticated Server Actions for saving and deleting posts with cache revalidation.
+  - `admin/login/`: Dedicated admin GitHub OAuth sign-in page.
+  - `api/auth/[...nextauth]/`: Auth.js v5 route handler.
+  - `sitemap.ts`: Dynamic sitemap generator including published posts (Redis + file) and excluding drafts/admin.
+  - `robots.ts`: Crawler rules with sitemap link and `/admin` disallow rules.
+- `src/auth.ts`: Auth.js v5 configuration with single-admin GitHub numeric ID verification.
+- `src/middleware.ts`: Edge convenience redirect from `/admin` to `/admin/login` for unauthenticated sessions.
+- `src/components/`:
+  - `admin/`: Admin UI components (`PostForm.tsx` with live MDX preview, `DeletePostButton.tsx`).
+  - `blog/`: Reader components (`BlogCard.tsx`, `BlogContent.tsx`, `TableOfContents.tsx`, `PostNavigation.tsx`, `BlogComponents.tsx`).
+  - `ui/`: Radix/Shadcn primitives, `landing/` section blocks, `technologies/` tech icons.
 - `public/`: Static assets (`assets/` for photos, `project/` for illustrations, `company/` for logos, `resume/` for PDFs).
 
 ---
@@ -46,14 +64,26 @@ The portfolio features an AI assistant powered by Gemini with a deterministic fa
 
 ### Rule 4: Secret & API Key Isolation
 
-- `GEMINI_API_KEY` is strictly for server-side use in `src/app/api/chat/route.ts`.
-- Never expose API keys in client-rendered components (`'use client'`).
+- Server-only credentials must **NEVER** be prefixed with `NEXT_PUBLIC_` or imported into client components (`'use client'`):
+  - `GEMINI_API_KEY`: Server-side chat assistant API route (`src/app/api/chat/route.ts`).
+  - `AUTH_SECRET`, `AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `ADMIN_GITHUB_ID`: Auth.js session signing, OAuth, and admin whitelisting.
+  - `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`: Upstash Redis database access.
+- Mark server modules containing credentials or database queries with `import 'server-only'`.
 - Never commit `.env.local` or private tokens.
 
-### Rule 5: MDX Blog Content Compliance
+### Rule 5: Blog Storage & Content Compliance
 
-- MDX blog posts must reside in `src/data/blog/<slug>.mdx`.
-- Frontmatter must satisfy `BlogFrontmatter` (`title`, `description`, `date`, `tags`, `isPublished`).
+- Blog posts can originate from version-controlled local files (`src/data/blog/<slug>.mdx`) or from Upstash Redis (runtime database).
+- `BlogFrontmatter` (and normalized `Post`) is the shared contract across both sources (`title`, `description`, `date`, `tags`, `isPublished`, `category`, `coverImage`, `youtubeId`, `readingTime`, `updatedDate`).
+- When slugs collide, Redis records always win over local file-based MDX.
+- Public APIs (`getPublishedBlogPostsAsync`, `getBlogPostBySlug`) must return only published posts (`isPublished: true`). Drafts are strictly accessible through authenticated admin APIs (`getAllPostsForAdmin`, `getPostForAdminBySlug`).
+
+### Rule 6: Admin Security & Server Action Boundaries
+
+- **Mandatory Server Guard**: Every admin page (`/admin/*`) and every Server Action (`src/app/admin/actions.ts`) **MUST** call `await requireAdmin()` as its first line of execution.
+- **Middleware Is Not a Security Boundary**: Next.js edge middleware (`src/middleware.ts`) serves strictly as a convenience UX redirect; authorization security must be enforced on the server within Server Actions and page loaders.
+- **Input Validation**: All form submissions and Server Action inputs must be validated with Zod schemas (`src/lib/blog-validation.ts`) before touching Upstash Redis.
+- **Untrusted MDX Guard**: Never render MDX from arbitrary or untrusted user inputs; only render MDX authored by the authenticated admin or version-controlled in the repository.
 
 ---
 
