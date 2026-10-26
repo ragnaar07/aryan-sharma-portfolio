@@ -32,6 +32,7 @@ import Linux from '@/components/technologies/Linux';
 import MachineLearning from '@/components/technologies/MachineLearning';
 import OpenAI from '@/components/technologies/OpenAI';
 import Python from '@/components/technologies/Python';
+
 // Technology Components
 
 // Component mapping for skills

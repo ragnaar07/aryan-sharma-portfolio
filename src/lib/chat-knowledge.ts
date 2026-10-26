@@ -64,7 +64,7 @@ export function getPortfolioKnowledgeContext() {
       (experience) =>
         `${experience.position} at ${experience.company}, ${experience.location} (${experience.startDate} - ${experience.endDate}): ${experience.description.join(
           ' ',
-        )}`,
+        )} Technologies: ${experience.technologies.map((t) => t.name).join(', ')}.`,
     )
     .join('\n- ');
   const projectText = projects
@@ -208,11 +208,38 @@ export function getPortfolioFallback(message: string) {
     ].join('\n');
   }
 
+  if (lower.includes('alstom')) {
+    const alstom = experiences.find((e) =>
+      e.company.toLowerCase().includes('alstom'),
+    );
+    if (alstom) {
+      return [
+        `At **${alstom.company}** (${alstom.position}, ${alstom.startDate} - ${alstom.endDate}):`,
+        ...alstom.description.map((item) => `- ${item}`),
+        `- **Technologies**: ${alstom.technologies.map((t) => t.name).join(', ')}.`,
+      ].join('\n');
+    }
+  }
+
+  if (
+    lower.includes('sjvn') ||
+    includesAny(lower, ['scada', 'grid automation'])
+  ) {
+    const sjvn = experiences.find((e) =>
+      e.company.toLowerCase().includes('sjvn'),
+    );
+    if (sjvn) {
+      return [
+        `At **${sjvn.company}** (${sjvn.position}, ${sjvn.startDate} - ${sjvn.endDate}):`,
+        ...sjvn.description.map((item) => `- ${item}`),
+        `- **Technologies**: ${sjvn.technologies.map((t) => t.name).join(', ')}.`,
+      ].join('\n');
+    }
+  }
+
   if (
     includesAny(lower, [
       'experience',
-      'alstom',
-      'sjvn',
       'job',
       'intern',
       'training',
@@ -223,7 +250,7 @@ export function getPortfolioFallback(message: string) {
     const experienceList = experiences
       .map(
         (experience) =>
-          `- **${experience.position}** at **${experience.company}**, ${experience.location} (${experience.startDate} - ${experience.endDate}): ${experience.description[0]}`,
+          `- **${experience.position}** at **${experience.company}**, ${experience.location} (${experience.startDate} - ${experience.endDate}): ${experience.description[0]} (Technologies: ${experience.technologies.map((t) => t.name).join(', ')})`,
       )
       .join('\n');
 
@@ -328,6 +355,13 @@ export function hasPortfolioIntent(message: string) {
     'experience',
     'alstom',
     'sjvn',
+    'scada',
+    'grid automation',
+    'rag',
+    'agent',
+    'agentic',
+    'predictive',
+    'concurrency',
     'job',
     'intern',
     'training',

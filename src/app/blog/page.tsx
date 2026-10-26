@@ -2,7 +2,7 @@ import Container from '@/components/common/Container';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { generateMetadata as getMetadata } from '@/config/Meta';
-import { getAllTags, getPublishedBlogPosts } from '@/lib/blog';
+import { getAllTagsAsync, getPublishedBlogPostsAsync } from '@/lib/blog';
 import { Metadata } from 'next';
 import { Robots } from 'next/dist/lib/metadata/types/metadata-types';
 import { Suspense } from 'react';
@@ -67,9 +67,9 @@ function BlogPageLoading() {
   );
 }
 
-export default function BlogPage() {
-  const allPosts = getPublishedBlogPosts();
-  const allTags = getAllTags();
+export default async function BlogPage() {
+  const allPosts = await getPublishedBlogPostsAsync();
+  const allTags = await getAllTagsAsync();
 
   return (
     <Suspense fallback={<BlogPageLoading />}>

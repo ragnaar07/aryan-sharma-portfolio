@@ -9,13 +9,69 @@ export interface PageMeta {
   twitterCard?: 'summary' | 'summary_large_image';
 }
 
+/**
+ * Resolves the canonical production site URL.
+ * Checks environment variables in priority order:
+ * 1. NEXT_PUBLIC_SITE_URL (explicit production domain)
+ * 2. SITE_URL
+ * 3. NEXT_PUBLIC_URL (if not localhost in production)
+ * 4. VERCEL_PROJECT_PRODUCTION_URL (automatic Vercel system env var)
+ * 5. VERCEL_URL (deployment URL on Vercel)
+ * 6. Localhost fallback for local development
+ */
+export function getSiteUrl(): string {
+  const envUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    process.env.NEXT_PUBLIC_URL;
+
+  if (envUrl && envUrl.trim().length > 0) {
+    const trimmed = envUrl.trim().replace(/\/+$/, '');
+    const isLocalhost =
+      trimmed.includes('localhost') || trimmed.includes('127.0.0.1');
+
+    // If running in production but envUrl points to localhost, prefer Vercel production domains
+    if (process.env.NODE_ENV === 'production' && isLocalhost) {
+      if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+        return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`.replace(
+          /\/+$/,
+          '',
+        );
+      }
+      if (process.env.VERCEL_URL) {
+        return `https://${process.env.VERCEL_URL}`.replace(/\/+$/, '');
+      }
+    }
+
+    return trimmed.startsWith('http://') || trimmed.startsWith('https://')
+      ? trimmed
+      : `https://${trimmed}`;
+  }
+
+  // Automatic Vercel production system environment variables
+  if (process.env.VERCEL_PROJECT_PRODUCTION_URL) {
+    return `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`.replace(
+      /\/+$/,
+      '',
+    );
+  }
+
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`.replace(/\/+$/, '');
+  }
+
+  return 'http://localhost:3000';
+}
+
 // Base site configuration
 export const siteConfig = {
   name: heroConfig.name,
   title: 'Aryan Sharma Portfolio',
   description:
     'Portfolio of Aryan Sharma, software engineer focused on C++, Linux, Python, AI/ML, and industrial automation.',
-  url: process.env.NEXT_PUBLIC_URL || 'http://localhost:3000',
+  get url() {
+    return getSiteUrl();
+  },
   ogImage: '/meta/opengraph-image.png',
   author: {
     name: about.name,
@@ -172,9 +228,10 @@ export function getPageMetadata(pathname: string): PageMeta {
 // Helper function to generate complete metadata object for Next.js
 export function generateMetadata(pathname: string) {
   const pageMeta = getPageMetadata(pathname);
+  const siteUrl = getSiteUrl();
 
   return {
-    metadataBase: new URL(siteConfig.url),
+    metadataBase: new URL(siteUrl),
     title: pageMeta.title,
     description: pageMeta.description,
     keywords: pageMeta.keywords?.join(', '),
@@ -182,7 +239,7 @@ export function generateMetadata(pathname: string) {
     creator: siteConfig.author.name,
     openGraph: {
       type: 'website',
-      url: `${siteConfig.url}${pathname}`,
+      url: `${siteUrl}${pathname}`,
       title: pageMeta.title,
       description: pageMeta.description,
       siteName: siteConfig.title,
@@ -214,7 +271,7 @@ export function generateMetadata(pathname: string) {
       },
     },
     alternates: {
-      canonical: `${siteConfig.url}${pathname}`,
+      canonical: `${siteUrl}${pathname}`,
     },
   };
 }
