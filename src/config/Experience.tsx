@@ -1,10 +1,7 @@
 import CPlusPlus from '@/components/technologies/CPlusPlus';
 import FastAPI from '@/components/technologies/FastAPI';
 import Linux from '@/components/technologies/Linux';
-import MachineLearning from '@/components/technologies/MachineLearning';
-import OpenAI from '@/components/technologies/OpenAI';
 import Python from '@/components/technologies/Python';
-import STM32 from '@/components/technologies/STM32';
 
 export interface Technology {
   name: string;
@@ -47,28 +44,10 @@ const linux = {
   icon: <Linux />,
 };
 
-const machineLearning = {
-  name: 'ML',
-  href: 'https://scikit-learn.org/',
-  icon: <MachineLearning />,
-};
-
-const genAi = {
-  name: 'GenAI',
-  href: 'https://www.langchain.com/',
-  icon: <OpenAI />,
-};
-
 const fastApi = {
   name: 'FastAPI',
   href: 'https://fastapi.tiangolo.com/',
   icon: <FastAPI />,
-};
-
-const stm32 = {
-  name: 'STM32',
-  href: 'https://www.st.com/en/microcontrollers-microprocessors/stm32-32-bit-arm-cortex-mcus.html',
-  icon: <STM32 />,
 };
 
 export const experiences: Experience[] = [
@@ -104,7 +83,7 @@ export const experiences: Experience[] = [
     ],
     startDate: 'May 2024',
     endDate: 'June 2024',
-    technologies: [python, linux, machineLearning, stm32, genAi],
+    technologies: [python, linux],
     website: 'https://sjvn.nic.in/',
     linkedin: 'https://www.linkedin.com/company/sjvn-limited/',
   },

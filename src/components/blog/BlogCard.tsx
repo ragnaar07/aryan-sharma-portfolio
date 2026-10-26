@@ -6,6 +6,7 @@ import {
   CardHeader,
 } from '@/components/ui/card';
 import { BlogPostPreview } from '@/types/blog';
+import { Clock } from 'lucide-react';
 import { Link } from 'next-view-transitions';
 import Image from 'next/image';
 
@@ -18,59 +19,101 @@ interface BlogCardProps {
 
 export function BlogCard({ post }: BlogCardProps) {
   const { slug, frontmatter } = post;
-  const { title, description, image, tags, date } = frontmatter;
+  const {
+    title,
+    description,
+    image,
+    coverImage,
+    category = 'Engineering',
+    tags,
+    date,
+    readingTime = '1 min read',
+  } = frontmatter;
+
+  const displayImage = coverImage || image || '/assets/me.png';
 
   const formattedDate = new Date(date).toLocaleDateString('en-US', {
     year: 'numeric',
-    month: 'long',
+    month: 'short',
     day: 'numeric',
   });
 
   return (
-    <Card className="group h-full w-full overflow-hidden border-gray-100 p-0 shadow-none transition-all dark:border-gray-800">
+    <Card className="group border-border bg-card hover:border-primary/50 flex h-full w-full flex-col overflow-hidden rounded-xl border p-0 shadow-sm transition-all hover:shadow-md">
       <CardHeader className="p-0">
-        <div className="relative aspect-video overflow-hidden">
-          <Link href={`/blog/${slug}`}>
-            <Image src={image} alt={title} fill className="object-cover" />
+        <div className="bg-muted relative aspect-video w-full overflow-hidden">
+          <Link href={`/blog/${slug}`} className="block h-full w-full">
+            <Image
+              src={displayImage}
+              alt={title}
+              fill
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+            />
           </Link>
+          <div className="absolute top-3 left-3 z-10">
+            <Badge
+              variant="secondary"
+              className="border-border/40 bg-background/90 border text-xs font-medium shadow-sm backdrop-blur-sm"
+            >
+              {category}
+            </Badge>
+          </div>
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="flex-1 p-5">
         <div className="space-y-3">
-          <Link href={`/blog/${slug}`}>
-            <h3 className="group-hover:text-primary line-clamp-2 text-xl leading-tight font-semibold">
+          <div className="text-muted-foreground flex items-center gap-3 text-xs">
+            <time className="flex items-center gap-1.5" dateTime={date}>
+              <Calender className="size-3.5 shrink-0" />
+              <span>{formattedDate}</span>
+            </time>
+            <span>•</span>
+            <span className="flex items-center gap-1.5">
+              <Clock className="size-3.5 shrink-0" />
+              <span>{readingTime}</span>
+            </span>
+          </div>
+
+          <Link href={`/blog/${slug}`} className="block">
+            <h3 className="text-foreground group-hover:text-primary line-clamp-2 text-xl font-semibold tracking-tight transition-colors">
               {title}
             </h3>
           </Link>
-          <p className="text-secondary mt-4 line-clamp-3">{description}</p>
+
+          <p className="text-muted-foreground line-clamp-2 text-sm">
+            {description}
+          </p>
         </div>
       </CardContent>
-      <CardFooter className="p-6 pt-0">
-        <div className="flex w-full flex-col space-y-3">
-          <div className="flex flex-wrap gap-2">
+      <CardFooter className="p-5 pt-0">
+        <div className="flex w-full flex-col space-y-4">
+          <div className="flex flex-wrap items-center gap-1.5">
             {tags.slice(0, 3).map((tag) => (
-              <Badge key={tag} variant="secondary" className="text-xs">
+              <Badge
+                key={tag}
+                variant="outline"
+                className="text-muted-foreground text-xs"
+              >
                 {tag}
               </Badge>
             ))}
             {tags.length > 3 && (
-              <Badge variant="outline" className="text-xs">
-                +{tags.length - 3} more
+              <Badge
+                variant="outline"
+                className="text-muted-foreground text-xs"
+              >
+                +{tags.length - 3}
               </Badge>
             )}
           </div>
-          <div className="mt-4 flex items-center justify-between gap-2">
-            <time
-              className="text-secondary flex items-center gap-2 text-sm"
-              dateTime={date}
-            >
-              <Calender className="size-4" /> {formattedDate}
-            </time>
+
+          <div className="flex items-center justify-end">
             <Link
               href={`/blog/${slug}`}
-              className="text-secondary flex items-center justify-end gap-2 underline-offset-4 hover:underline"
+              className="text-foreground hover:text-primary inline-flex items-center gap-1.5 text-xs font-medium transition-colors"
             >
-              Read More <ArrowRight className="size-4" />
+              <span>Read article</span>
+              <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-1" />
             </Link>
           </div>
         </div>

@@ -1,8 +1,5 @@
 import { systemPrompt } from '@/config/ChatPrompt';
-import {
-  getPortfolioFallback,
-  hasPortfolioIntent,
-} from '@/lib/chat-knowledge';
+import { getPortfolioFallback, hasPortfolioIntent } from '@/lib/chat-knowledge';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
@@ -79,7 +76,10 @@ export async function POST(request: NextRequest) {
     : [];
 
   if (!message) {
-    return NextResponse.json({ error: 'Message is required.' }, { status: 400 });
+    return NextResponse.json(
+      { error: 'Message is required.' },
+      { status: 400 },
+    );
   }
 
   if (hasPortfolioIntent(message)) {

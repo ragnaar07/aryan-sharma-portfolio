@@ -30,4 +30,8 @@ export const chatSuggestions = [
   'Tell me about your education and skills',
   'Show me your main projects',
   'Summarize your work experience',
+  'What did you build at Alstom?',
+  'Tell me about your GenAI and RAG projects',
+  'How do you use C++ and Linux in your work?',
+  'What certifications and bootcamps have you completed?',
 ];

@@ -1,18 +1,18 @@
 export const certificates = [
   {
-    file: '/project/transformer-maintenance.svg',
+    file: '/certificates/data-science-bootcamp.svg',
     title: 'Complete Data Science, Machine Learning, DL & NLP Bootcamp',
     issuer: 'Krish Naik, KRISHAI Technologies (Udemy)',
     date: '2026-05-21',
   },
   {
-    file: '/project/rag-chatbot.svg',
+    file: '/certificates/agentic-ai-bootcamp.svg',
     title: 'Complete Agentic AI Bootcamp with LangGraph & LangChain',
     issuer: 'Krish Naik, KRISHAI Technologies (Udemy)',
     date: '2026-05-21',
   },
   {
-    file: '/project/cpp-rule-engine.svg',
+    file: '/certificates/linux-cpp-concurrency.svg',
     title: 'Linux System Programming & C++ Concurrency',
     issuer: 'Active Learning',
     date: '2026-05-21',

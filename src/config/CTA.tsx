@@ -15,5 +15,6 @@ export const ctaConfig = {
   calLink: '/contact',
 
   // Pre-text message
-  preText: 'Hiring for AI/ML, software, automation, or industrial systems work? Send the details.',
+  preText:
+    'Hiring for AI/ML, software, automation, or industrial systems work? Send the details.',
 };

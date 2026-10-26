@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-label="Data Science, Machine Learning, DL and NLP Bootcamp Certificate">
+  <defs>
+    <linearGradient id="bgGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a101f"/>
+      <stop offset="50%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#061c24"/>
+    </linearGradient>
+    <linearGradient id="cardGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0.9"/>
+    </linearGradient>
+    <linearGradient id="emeraldGlow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="1280" height="720" fill="url(#bgGrad1)"/>
+  <rect x="40" y="40" width="1200" height="640" rx="24" fill="url(#cardGrad1)" stroke="#1e3a5f" stroke-width="2"/>
+  <rect x="52" y="52" width="1176" height="616" rx="18" fill="none" stroke="#10b981" stroke-opacity="0.25" stroke-dasharray="8 8"/>
+
+  <!-- Left: Neural Network & Data Visualization Badge -->
+  <g transform="translate(100, 140)">
+    <!-- Shield / Badge Backing -->
+    <rect width="360" height="440" rx="20" fill="#0b1329" stroke="#10b981" stroke-width="2"/>
+    
+    <!-- Neural Network Graph -->
+    <!-- Input Nodes -->
+    <circle cx="80" cy="110" r="14" fill="#10b981"/>
+    <circle cx="80" cy="180" r="14" fill="#10b981"/>
+    <circle cx="80" cy="250" r="14" fill="#10b981"/>
+    <circle cx="80" cy="320" r="14" fill="#10b981"/>
+    
+    <!-- Hidden Layer 1 -->
+    <circle cx="180" cy="80" r="14" fill="#06b6d4"/>
+    <circle cx="180" cy="150" r="14" fill="#06b6d4"/>
+    <circle cx="180" cy="220" r="14" fill="#06b6d4"/>
+    <circle cx="180" cy="290" r="14" fill="#06b6d4"/>
+    <circle cx="180" cy="360" r="14" fill="#06b6d4"/>
+
+    <!-- Hidden Layer 2 -->
+    <circle cx="280" cy="140" r="16" fill="#3b82f6"/>
+    <circle cx="280" cy="220" r="16" fill="#3b82f6"/>
+    <circle cx="280" cy="300" r="16" fill="#3b82f6"/>
+
+    <!-- Interconnections -->
+    <path d="M94 110 L166 80 M94 110 L166 150 M94 110 L166 220" stroke="#06b6d4" stroke-width="2" stroke-opacity="0.4"/>
+    <path d="M94 180 L166 80 M94 180 L166 150 M94 180 L166 220 M94 180 L166 290" stroke="#06b6d4" stroke-width="2" stroke-opacity="0.4"/>
+    <path d="M94 250 L166 150 M94 250 L166 220 M94 250 L166 290 M94 250 L166 360" stroke="#06b6d4" stroke-width="2" stroke-opacity="0.4"/>
+    <path d="M94 320 L166 220 M94 320 L166 290 M94 320 L166 360" stroke="#06b6d4" stroke-width="2" stroke-opacity="0.4"/>
+
+    <path d="M194 80 L264 140 M194 80 L264 220" stroke="#3b82f6" stroke-width="2" stroke-opacity="0.4"/>
+    <path d="M194 150 L264 140 M194 150 L264 220 M194 150 L264 300" stroke="#3b82f6" stroke-width="2" stroke-opacity="0.4"/>
+    <path d="M194 220 L264 140 M194 220 L264 220 M194 220 L264 300" stroke="#3b82f6" stroke-width="2" stroke-opacity="0.4"/>
+    <path d="M194 290 L264 140 M194 290 L264 220 M194 290 L264 300" stroke="#3b82f6" stroke-width="2" stroke-opacity="0.4"/>
+    <path d="M194 360 L264 220 M194 360 L264 300" stroke="#3b82f6" stroke-width="2" stroke-opacity="0.4"/>
+
+    <!-- Bottom Data Wave Curve -->
+    <path d="M40 400 Q90 380 180 405 T320 395" fill="none" stroke="#10b981" stroke-width="3"/>
+  </g>
+
+  <!-- Right: Certificate Typography & Details -->
+  <g transform="translate(510, 140)">
+    <!-- Top Credential Pill -->
+    <rect x="0" y="0" width="310" height="34" rx="17" fill="#064e3b" stroke="#10b981" stroke-width="1.5"/>
+    <text x="155" y="22" fill="#34d399" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" text-anchor="middle" letter-spacing="2">CERTIFICATE OF COMPLETION</text>
+
+    <!-- Main Title -->
+    <text x="0" y="85" fill="#f8fafc" font-family="system-ui, -apple-system, sans-serif" font-size="38" font-weight="800">Complete Data Science,</text>
+    <text x="0" y="132" fill="url(#emeraldGlow)" font-family="system-ui, -apple-system, sans-serif" font-size="36" font-weight="800">Machine Learning, DL &amp; NLP</text>
+    
+    <!-- Subtitle -->
+    <text x="0" y="180" fill="#94a3b8" font-family="system-ui, -apple-system, sans-serif" font-size="20">End-to-End Analytics, Neural Networks &amp; LLM Foundations</text>
+
+    <!-- Issuer Section -->
+    <line x1="0" y1="215" x2="670" y2="215" stroke="#334155" stroke-width="1.5"/>
+    <text x="0" y="255" fill="#64748b" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="600" letter-spacing="1">ISSUED BY</text>
+    <text x="0" y="285" fill="#e2e8f0" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700">Krish Naik, KRISHAI Technologies (Udemy)</text>
+
+    <!-- Skill Chips -->
+    <g transform="translate(0, 325)">
+      <rect x="0" y="0" width="80" height="32" rx="8" fill="#1e293b" stroke="#334155"/>
+      <text x="40" y="20" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="13" font-weight="600" text-anchor="middle">Python</text>
+
+      <rect x="92" y="0" width="120" height="32" rx="8" fill="#1e293b" stroke="#334155"/>
+      <text x="152" y="20" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="13" font-weight="600" text-anchor="middle">Scikit-Learn</text>
+
+      <rect x="224" y="0" width="90" height="32" rx="8" fill="#1e293b" stroke="#334155"/>
+      <text x="269" y="20" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="13" font-weight="600" text-anchor="middle">PyTorch</text>
+
+      <rect x="326" y="0" width="130" height="32" rx="8" fill="#1e293b" stroke="#334155"/>
+      <text x="391" y="20" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="13" font-weight="600" text-anchor="middle">Deep Learning</text>
+
+      <rect x="468" y="0" width="80" height="32" rx="8" fill="#1e293b" stroke="#334155"/>
+      <text x="508" y="20" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="13" font-weight="600" text-anchor="middle">NLP</text>
+    </g>
+
+    <!-- Issue Date & Verification -->
+    <text x="0" y="415" fill="#10b981" font-family="system-ui, -apple-system, sans-serif" font-size="15" font-weight="600">✓ Verified Credential • Issued May 21, 2026</text>
+  </g>
+</svg>
