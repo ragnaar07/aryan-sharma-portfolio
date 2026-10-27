@@ -2,27 +2,25 @@
   "name": "sleek-portfolio",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "npm@11.21.1",
   "scripts": {
     "dev": "NODE_OPTIONS=--no-experimental-webstorage next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "typecheck": "tsc --noEmit",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
-    "format:prettierrc": "prettier --config .prettierrc --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
-    "format:prettierrcjson": "prettier --config .prettierrc.json --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
-    "format:all": "npm run format:prettierrc && npm run format:prettierrcjson",
+    "format:all": "npm run format",
     "prepare": "husky",
     "knip": "knip"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
-      "prettier --config .prettierrc --write",
-      "prettier --config .prettierrc.json --write",
+      "prettier --write",
       "eslint --fix"
     ],
     "*.{json,md}": [
-      "prettier --config .prettierrc --write",
-      "prettier --config .prettierrc.json --write"
+      "prettier --write"
     ]
   },
   "dependencies": {

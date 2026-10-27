@@ -1,9 +1,10 @@
 'use client';
 
-import { cn } from '@/lib/utils';
 import { useTheme } from 'next-themes';
 import React, { useCallback, useEffect, useState } from 'react';
 import { flushSync } from 'react-dom';
+
+import { cn } from '@/lib/utils';
 
 import Moon from '../svgs/Moon';
 import Sun from '../svgs/Sun';
@@ -41,7 +42,7 @@ export const useThemeToggle = ({
   blur?: boolean;
   gifUrl?: string;
 } = {}) => {
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
 
   const [isDark, setIsDark] = useState(false);
 
@@ -51,13 +52,10 @@ export const useThemeToggle = ({
 
   const styleId = 'theme-transition-styles';
 
-  const updateStyles = useCallback((css: string, name: string) => {
+  const updateStyles = useCallback((css: string) => {
     if (typeof window === 'undefined') return;
 
     let styleElement = document.getElementById(styleId) as HTMLStyleElement;
-
-    console.log('style ELement', styleElement);
-    console.log('name', name);
 
     if (!styleElement) {
       styleElement = document.createElement('style');
@@ -66,8 +64,6 @@ export const useThemeToggle = ({
     }
 
     styleElement.textContent = css;
-
-    console.log('content updated');
   }, []);
 
   const toggleTheme = useCallback(() => {
@@ -75,17 +71,17 @@ export const useThemeToggle = ({
 
     const animation = createAnimation(variant, start, blur, gifUrl);
 
-    updateStyles(animation.css, animation.name);
+    updateStyles(animation.css);
 
     if (typeof window === 'undefined') return;
 
     const switchTheme = () => {
-      setTheme(theme === 'light' ? 'dark' : 'light');
+      setTheme(resolvedTheme === 'dark' ? 'light' : 'dark');
     };
 
     runWithViewTransition(switchTheme);
   }, [
-    theme,
+    resolvedTheme,
     setTheme,
     variant,
     start,
@@ -101,7 +97,7 @@ export const useThemeToggle = ({
 
     const animation = createAnimation(variant, start, blur, gifUrl);
 
-    updateStyles(animation.css, animation.name);
+    updateStyles(animation.css);
 
     if (typeof window === 'undefined') return;
 
@@ -117,7 +113,7 @@ export const useThemeToggle = ({
 
     const animation = createAnimation(variant, start, blur, gifUrl);
 
-    updateStyles(animation.css, animation.name);
+    updateStyles(animation.css);
 
     if (typeof window === 'undefined') return;
 

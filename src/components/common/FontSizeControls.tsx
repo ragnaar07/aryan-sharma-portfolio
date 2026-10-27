@@ -1,8 +1,9 @@
 'use client';
 
-import { useHapticFeedback } from '@/hooks/use-haptic-feedback';
 import { Minus, Plus, Settings } from 'lucide-react';
 import { useEffect, useState } from 'react';
+
+import { useHapticFeedback } from '@/hooks/use-haptic-feedback';
 
 import { Button } from '../ui/button';
 import {

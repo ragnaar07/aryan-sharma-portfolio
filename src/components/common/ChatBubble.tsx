@@ -1,5 +1,8 @@
 'use client';
 
+import React, { useEffect, useRef, useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+
 import ChatBubbleIcon from '@/components/svgs/ChatBubbleIcon';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -16,8 +19,6 @@ import { heroConfig } from '@/config/Hero';
 import { useHapticFeedback } from '@/hooks/use-haptic-feedback';
 import { getPortfolioFallback } from '@/lib/chat-knowledge';
 import { cn } from '@/lib/utils';
-import React, { useEffect, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
 
 import SendIcon from '../svgs/SendIcon';
 
@@ -99,7 +100,7 @@ const ChatBubble: React.FC = () => {
     sendMessage(messageText, botMessageId, [...messages, userMessage]);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -325,7 +326,7 @@ const ChatBubble: React.FC = () => {
             placeholder="Ask me about my work and experience..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyDown}
             disabled={isLoading}
             className="flex-1"
           />

@@ -1,8 +1,9 @@
-import { type Experience } from '@/config/Experience';
-import { cn } from '@/lib/utils';
 import { Link } from 'next-view-transitions';
 import Image from 'next/image';
 import React from 'react';
+
+import { type Experience } from '@/config/Experience';
+import { cn } from '@/lib/utils';
 
 import Skill from '../common/Skill';
 import Github from '../svgs/Github';

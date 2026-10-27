@@ -1,9 +1,10 @@
 'use client';
 
-import { ctaConfig } from '@/config/CTA';
-import { useHapticFeedback } from '@/hooks/use-haptic-feedback';
 import Image from 'next/image';
 import Link from 'next/link';
+
+import { ctaConfig } from '@/config/CTA';
+import { useHapticFeedback } from '@/hooks/use-haptic-feedback';
 
 import Container from '../common/Container';
 

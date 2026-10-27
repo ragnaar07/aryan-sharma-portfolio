@@ -1,6 +1,7 @@
-import type { Post } from '@/types/blog';
 import { Redis } from '@upstash/redis';
 import 'server-only';
+
+import type { Post } from '@/types/blog';
 
 export const REDIS_POSTS_HASH_KEY = 'portfolio:blog:posts';
 
@@ -26,6 +27,24 @@ export function getRedisClient(): Redis | null {
 }
 
 /**
+ * Safely parses any date representation into an ISO string.
+ * Falls back to the provided fallback or current ISO time if parsing fails or produces NaN.
+ */
+function safeIsoDate(input: unknown, fallback?: string): string {
+  if (
+    typeof input === 'string' ||
+    typeof input === 'number' ||
+    input instanceof Date
+  ) {
+    const d = new Date(input);
+    if (!Number.isNaN(d.getTime())) {
+      return d.toISOString();
+    }
+  }
+  return fallback ?? new Date().toISOString();
+}
+
+/**
  * Normalizes a raw object/parsed record into a valid Post type with ISO strings.
  */
 function normalizePost(raw: unknown): Post | null {
@@ -39,12 +58,8 @@ function normalizePost(raw: unknown): Post | null {
   }
 
   const cover = p.coverImage || p.image || '';
-  const isoDate = p.date
-    ? new Date(p.date).toISOString()
-    : new Date().toISOString();
-  const isoUpdatedDate = p.updatedDate
-    ? new Date(p.updatedDate).toISOString()
-    : isoDate;
+  const isoDate = safeIsoDate(p.date);
+  const isoUpdatedDate = safeIsoDate(p.updatedDate, isoDate);
 
   return {
     slug: String(p.slug),
@@ -91,9 +106,16 @@ export async function listRedisPosts(): Promise<Post[]> {
         }
       }
 
-      const post = normalizePost(parsed);
-      if (post) {
-        posts.push(post);
+      try {
+        const post = normalizePost(parsed);
+        if (post) {
+          posts.push(post);
+        }
+      } catch (postError) {
+        console.warn(
+          '[redis-posts] Failed to normalize post record, skipping:',
+          postError,
+        );
       }
     }
 
@@ -131,7 +153,15 @@ export async function getRedisPostBySlug(slug: string): Promise<Post | null> {
       }
     }
 
-    return normalizePost(parsed);
+    try {
+      return normalizePost(parsed);
+    } catch (postError) {
+      console.warn(
+        `[redis-posts] Failed to normalize post "${slug}":`,
+        postError,
+      );
+      return null;
+    }
   } catch (error) {
     console.warn(
       `[redis-posts] Failed to get post "${slug}" from Upstash Redis:`,

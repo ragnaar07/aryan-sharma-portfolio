@@ -1,3 +1,7 @@
+import { Metadata } from 'next';
+import { Link } from 'next-view-transitions';
+import { notFound } from 'next/navigation';
+
 import { BlogContent } from '@/components/blog/BlogContent';
 import { BlogList } from '@/components/blog/BlogList';
 import { PostNavigation } from '@/components/blog/PostNavigation';
@@ -14,9 +18,6 @@ import {
   getPublishedBlogPostsAsync,
   getRelatedPosts,
 } from '@/lib/blog';
-import { Metadata } from 'next';
-import { Link } from 'next-view-transitions';
-import { notFound } from 'next/navigation';
 
 export const dynamicParams = true;
 

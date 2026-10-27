@@ -1,13 +1,16 @@
+import ReactLenis from 'lenis/react';
+import { ViewTransitions } from 'next-view-transitions';
+
 import UmamiAnalytics from '@/components/analytics/UmamiAnalytics';
 import ChatBubble from '@/components/common/ChatBubble';
 import Footer from '@/components/common/Footer';
 import Navbar from '@/components/common/Navbar';
 import OnekoCat from '@/components/common/OnekoCat';
+import { PublicShell } from '@/components/common/PublicShell';
 import { Quote } from '@/components/common/Quote';
 import { ThemeProvider } from '@/components/common/ThemeProviders';
+import { Toaster } from '@/components/ui/sonner';
 import { generateMetadata as getMetadata } from '@/config/Meta';
-import ReactLenis from 'lenis/react';
-import { ViewTransitions } from 'next-view-transitions';
 
 import './globals.css';
 
@@ -29,14 +32,19 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <ReactLenis root>
-              <Navbar />
+              <PublicShell>
+                <Navbar />
+              </PublicShell>
               {children}
-              <OnekoCat />
-              <Quote />
-              <Footer />
-              <ChatBubble />
+              <PublicShell>
+                <OnekoCat />
+                <Quote />
+                <Footer />
+                <ChatBubble />
+              </PublicShell>
               <UmamiAnalytics />
             </ReactLenis>
+            <Toaster />
           </ThemeProvider>
         </body>
       </html>

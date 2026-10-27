@@ -1,13 +1,14 @@
 'use client';
 
+import { ChevronDown, List } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { TocHeading } from '@/lib/blog-toc';
-import { ChevronDown, List } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
 
 interface TableOfContentsProps {
   headings: TocHeading[];

@@ -1,18 +1,20 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+
 import { adminBlogLabels } from '@/config/BlogAdmin';
 import { requireAdmin } from '@/lib/auth-guard';
 import { deletePost, getPostForAdminBySlug, savePost } from '@/lib/blog';
+import { getFileBlogPostBySlug } from '@/lib/blog-file-loader';
 import {
   type PostActionState,
   type PostFormStateValues,
   extractYouTubeVideoId,
   postFormSchema,
 } from '@/lib/blog-validation';
+import { getRedisPostBySlug } from '@/lib/redis-posts';
 import type { Post } from '@/types/blog';
-import { revalidatePath } from 'next/cache';
-import { isRedirectError } from 'next/dist/client/components/redirect-error';
-import { redirect } from 'next/navigation';
 
 /**
  * Server Action to save (create or update) a blog post in Upstash Redis.
@@ -45,11 +47,17 @@ export async function savePostAction(
   });
 
   if (!validation.success) {
-    const formattedErrors = validation.error.flatten().fieldErrors;
+    const fieldErrors = validation.error.flatten().fieldErrors;
+    const errors: Record<string, string[]> = {};
+    for (const [key, val] of Object.entries(fieldErrors)) {
+      if (val) {
+        errors[key] = val;
+      }
+    }
     return {
       success: false,
       message: adminBlogLabels.errors.generalSaveError,
-      errors: formattedErrors,
+      errors,
       values: rawValues,
     };
   }
@@ -91,7 +99,13 @@ export async function savePostAction(
     revalidatePath('/');
     revalidatePath('/admin');
   } catch (error) {
-    if (isRedirectError(error)) {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'digest' in error &&
+      typeof (error as { digest: string }).digest === 'string' &&
+      (error as { digest: string }).digest.startsWith('NEXT_REDIRECT')
+    ) {
       throw error;
     }
     console.error('[actions] Error saving post:', error);
@@ -107,6 +121,7 @@ export async function savePostAction(
 
   // Redirect to admin dashboard on success
   redirect('/admin');
+  return { success: true };
 }
 
 /**
@@ -124,7 +139,35 @@ export async function deletePostAction(
   }
 
   try {
+    const [redisPost, filePost] = await Promise.all([
+      getRedisPostBySlug(slug),
+      Promise.resolve(getFileBlogPostBySlug(slug)),
+    ]);
+
+    if (!redisPost && filePost) {
+      return {
+        success: false,
+        error:
+          'Local file-based posts (src/data/blog/) are version-controlled in the repository and cannot be deleted via the admin dashboard. Remove the MDX file from the repository to delete this article.',
+      };
+    }
+
+    if (!redisPost && !filePost) {
+      return {
+        success: false,
+        error: `Post "${slug}" was not found.`,
+      };
+    }
+
     const deleted = await deletePost(slug);
+
+    if (!deleted && filePost) {
+      return {
+        success: false,
+        error:
+          'Local file-based posts (src/data/blog/) are version-controlled in the repository and cannot be deleted via the admin dashboard. Remove the MDX file from the repository to delete this article.',
+      };
+    }
 
     // Revalidate paths
     revalidatePath('/blog');

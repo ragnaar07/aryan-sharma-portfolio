@@ -1,3 +1,7 @@
+import { Clock } from 'lucide-react';
+import { Link } from 'next-view-transitions';
+import Image from 'next/image';
+
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -6,9 +10,6 @@ import {
   CardHeader,
 } from '@/components/ui/card';
 import { BlogPostPreview } from '@/types/blog';
-import { Clock } from 'lucide-react';
-import { Link } from 'next-view-transitions';
-import Image from 'next/image';
 
 import ArrowRight from '../svgs/ArrowRight';
 import Calender from '../svgs/Calender';

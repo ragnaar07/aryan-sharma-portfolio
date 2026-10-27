@@ -1,10 +1,11 @@
+import { ExternalLink, LogOut, ShieldCheck } from 'lucide-react';
+import type { Session } from 'next-auth';
+import { Link } from 'next-view-transitions';
+
 import { signOut } from '@/auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { ExternalLink, LogOut, ShieldCheck } from 'lucide-react';
-import type { Session } from 'next-auth';
-import { Link } from 'next-view-transitions';
 
 interface AdminHeaderProps {
   session: Session;

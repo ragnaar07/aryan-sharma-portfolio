@@ -1,9 +1,10 @@
+import { z } from 'zod';
+
 import {
   BLOG_CATEGORIES,
   BLOG_VALIDATION,
   adminBlogLabels,
 } from '@/config/BlogAdmin';
-import { z } from 'zod';
 
 /**
  * Extracts an 11-character YouTube video ID from a URL or raw ID string.

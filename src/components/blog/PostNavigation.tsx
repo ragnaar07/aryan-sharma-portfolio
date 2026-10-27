@@ -1,6 +1,7 @@
-import { BlogPostPreview } from '@/types/blog';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { Link } from 'next-view-transitions';
+
+import { BlogPostPreview } from '@/types/blog';
 
 interface PostNavigationProps {
   olderPost?: BlogPostPreview | null;

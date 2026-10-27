@@ -1,5 +1,8 @@
 'use client';
 
+import Image from 'next/image';
+import React, { useState } from 'react';
+
 import {
   Card,
   CardContent,
@@ -7,8 +10,7 @@ import {
   CardHeader,
 } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
-import Image from 'next/image';
-import React, { useState } from 'react';
+import { cn } from '@/lib/utils';
 
 export interface Certificate {
   file: string;
@@ -55,7 +57,10 @@ export default function CertificatesGallery({
   return (
     <>
       <div
-        className={`grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-2 ${className}`}
+        className={cn(
+          'grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-2',
+          className,
+        )}
       >
         {certificates.map((cert) => (
           <Card

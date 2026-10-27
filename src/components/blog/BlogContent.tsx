@@ -1,7 +1,3 @@
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { TocHeading } from '@/lib/blog-toc';
-import { BlogFrontmatter } from '@/types/blog';
 import rehypeHighlight from '@shikijs/rehype';
 import 'katex/dist/katex.min.css';
 import { Clock } from 'lucide-react';
@@ -10,6 +6,11 @@ import Image from 'next/image';
 import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
+
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { TocHeading } from '@/lib/blog-toc';
+import { BlogFrontmatter } from '@/types/blog';
 
 import Calender from '../svgs/Calender';
 import { BlogComponents } from './BlogComponents';

@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { requireAdmin } from '@/lib/auth-guard';
 import {
   getAllFileBlogPostPreviews,
@@ -19,7 +21,6 @@ import {
   blogPostToPost,
   postToBlogPost,
 } from '@/types/blog';
-import 'server-only';
 
 export { calculateReadingTime } from '@/lib/blog-reading-time';
 export {
