@@ -1,9 +1,10 @@
-import { calculateReadingTime } from '@/lib/blog-reading-time';
-import { BlogPost, BlogPostPreview, Post, blogPostToPost } from '@/types/blog';
 import fs from 'fs';
 import matter from 'gray-matter';
 import path from 'path';
 import 'server-only';
+
+import { calculateReadingTime } from '@/lib/blog-reading-time';
+import { BlogPost, BlogPostPreview, Post, blogPostToPost } from '@/types/blog';
 
 const blogDirectory = path.join(process.cwd(), 'src/data/blog');
 

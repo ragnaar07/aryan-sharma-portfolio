@@ -1,11 +1,17 @@
-import { catConfig } from '@/config/Cat';
+'use client';
+
+import { usePathname } from 'next/navigation';
 import Script from 'next/script';
 import React from 'react';
 
+import { catConfig } from '@/config/Cat';
+
 export default function OnekoCat() {
-  if (!catConfig.enabled) {
+  const pathname = usePathname();
+
+  if (!catConfig.enabled || pathname?.startsWith('/admin')) {
     return null;
   }
 
-  return <Script src="./oneko/oneko.js" data-cat="./oneko/oneko.gif" />;
+  return <Script src="/oneko/oneko.js" data-cat="/oneko/oneko.gif" />;
 }

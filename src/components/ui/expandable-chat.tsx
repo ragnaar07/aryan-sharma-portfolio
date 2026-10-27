@@ -1,15 +1,24 @@
 'use client';
 
+import { MessageCircle, X } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { useHapticFeedback } from '@/hooks/use-haptic-feedback';
 import { cn } from '@/lib/utils';
-import { MessageCircle, X } from 'lucide-react';
-import React, { useRef, useState } from 'react';
 
 export type ChatPosition = 'bottom-right' | 'bottom-left';
 export type ChatSize = 'sm' | 'md' | 'lg' | 'xl' | 'full';
 
-const chatConfig = {
+const chatConfig: {
+  dimensions: Record<ChatSize, string>;
+  positions: Record<ChatPosition, string>;
+  chatPositions: Record<ChatPosition, string>;
+  states: {
+    open: string;
+    closed: string;
+  };
+} = {
   dimensions: {
     sm: 'sm:max-w-sm sm:max-h-[500px]',
     md: 'sm:max-w-md sm:max-h-[600px]',
@@ -165,4 +174,5 @@ export {
   ExpandableChatHeader,
   ExpandableChatBody,
   ExpandableChatFooter,
+  ExpandableChatToggle,
 };

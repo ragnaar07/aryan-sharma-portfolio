@@ -1,12 +1,13 @@
+import { ArrowUpRight, Puzzle } from 'lucide-react';
+import { Metadata } from 'next';
+import { Link } from 'next-view-transitions';
+import React from 'react';
+
 import Container from '@/components/common/Container';
 import Monitor from '@/components/svgs/devices/Monitor';
 import { Separator } from '@/components/ui/separator';
 import { devices, software, webExtensions } from '@/config/Gears';
 import { generateMetadata as getMetadata } from '@/config/Meta';
-import { ArrowUpRight, Puzzle } from 'lucide-react';
-import { Metadata } from 'next';
-import { Link } from 'next-view-transitions';
-import React from 'react';
 
 export const metadata: Metadata = {
   ...getMetadata('/gears'),

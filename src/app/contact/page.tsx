@@ -1,10 +1,3 @@
-import Container from '@/components/common/Container';
-import ContactForm from '@/components/contact/ContactForm';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { contactConfig } from '@/config/Contact';
-import { generateMetadata as getMetadata } from '@/config/Meta';
 import {
   Github,
   Linkedin,
@@ -16,6 +9,14 @@ import {
 import { Metadata } from 'next';
 import Link from 'next/link';
 import React from 'react';
+
+import Container from '@/components/common/Container';
+import ContactForm from '@/components/contact/ContactForm';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { contactConfig } from '@/config/Contact';
+import { generateMetadata as getMetadata } from '@/config/Meta';
 
 export const metadata: Metadata = {
   ...getMetadata('/contact'),

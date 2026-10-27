@@ -1,12 +1,13 @@
+import fs from 'fs';
+import matter from 'gray-matter';
+import path from 'path';
+
 import { projects } from '@/config/Projects';
 import {
   ProjectCaseStudy,
   ProjectCaseStudyFrontmatter,
   ProjectCaseStudyPreview,
 } from '@/types/project';
-import fs from 'fs';
-import matter from 'gray-matter';
-import path from 'path';
 
 const projectsDirectory = path.join(process.cwd(), 'src/data/projects');
 

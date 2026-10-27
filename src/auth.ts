@@ -32,7 +32,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       if (!githubId || githubId !== adminId) {
         console.warn(
-          `[auth] Access denied. Sign-in attempted with GitHub ID: ${githubId || 'unknown'}. Expected: ${adminId}`,
+          `[auth] Access denied. Sign-in attempted with unauthorized GitHub ID: ${githubId || 'unknown'}.`,
         );
         return false;
       }

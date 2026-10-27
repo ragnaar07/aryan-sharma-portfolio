@@ -1,6 +1,7 @@
-import { getPublishedBlogPosts } from '@/lib/blog';
 import { Link } from 'next-view-transitions';
 import React from 'react';
+
+import { getPublishedBlogPosts } from '@/lib/blog';
 
 import { BlogCard } from '../blog/BlogCard';
 import Container from '../common/Container';

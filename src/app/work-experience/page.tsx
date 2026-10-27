@@ -1,10 +1,11 @@
+import { Metadata } from 'next';
+import { Robots } from 'next/dist/lib/metadata/types/metadata-types';
+
 import Container from '@/components/common/Container';
 import { ExperienceList } from '@/components/experience/ExperienceList';
 import { Separator } from '@/components/ui/separator';
 import { experiences } from '@/config/Experience';
 import { generateMetadata as getMetadata } from '@/config/Meta';
-import { Metadata } from 'next';
-import { Robots } from 'next/dist/lib/metadata/types/metadata-types';
 
 export const metadata: Metadata = {
   ...getMetadata('/work-experience'),

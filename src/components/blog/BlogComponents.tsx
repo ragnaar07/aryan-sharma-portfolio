@@ -1,6 +1,7 @@
-import { slugifyHeading } from '@/lib/blog-toc';
 import Image from 'next/image';
 import React from 'react';
+
+import { slugifyHeading } from '@/lib/blog-toc';
 
 import { CodeCopyButton } from './CodeCopyButton';
 

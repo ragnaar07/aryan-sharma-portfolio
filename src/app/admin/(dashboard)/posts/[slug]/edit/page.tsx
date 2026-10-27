@@ -1,7 +1,8 @@
+import { notFound } from 'next/navigation';
+
 import { PostForm } from '@/components/admin/PostForm';
 import { requireAdmin } from '@/lib/auth-guard';
 import { getPostForAdminBySlug } from '@/lib/blog';
-import { notFound } from 'next/navigation';
 
 export const dynamic = 'force-dynamic';
 

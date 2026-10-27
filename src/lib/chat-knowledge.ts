@@ -35,24 +35,74 @@ function getRelevantProjects(message: string) {
     'using',
     'with',
     'tech',
+    'tell',
+    'about',
+    'what',
+    'have',
+    'done',
+    'your',
+    'some',
+    'give',
+    'list',
+    'work',
   ]);
+
+  const queryWords = lower
+    .split(/[^a-z0-9+#_.-]+/)
+    .filter((word) => word.length > 2 && !ignoredWords.has(word));
 
   return projects.filter((project) => {
     const title = project.title.toLowerCase();
     const description = project.description.toLowerCase();
-    const technologies = project.technologies
-      .map((technology) => technology.name.toLowerCase())
-      .join(' ');
+    const techNames = project.technologies.map((technology) =>
+      technology.name.toLowerCase(),
+    );
+    const technologies = techNames.join(' ');
 
-    return [...title.split(/\s+/), ...technologies.split(/\s+/)]
-      .filter((word) => word.length > 2 && !ignoredWords.has(word))
-      .some(
-        (word) =>
-          lower.includes(word) ||
-          (word.length > 4 &&
-            description.includes(word) &&
-            lower.includes(word)),
-      );
+    // Match explicit domain concepts
+    if (
+      (lower.includes('concurren') ||
+        queryWords.some((w) => w.startsWith('concur'))) &&
+      (title.includes('rule engine') || description.includes('concurrent'))
+    ) {
+      return true;
+    }
+
+    if (
+      (lower.includes('predict') ||
+        queryWords.some((w) => w.startsWith('predict'))) &&
+      (title.includes('predictive') || description.includes('predict'))
+    ) {
+      return true;
+    }
+
+    if (
+      (lower.includes('agent') || lower.includes('rag')) &&
+      (title.includes('rag') ||
+        title.includes('automation') ||
+        description.includes('rag') ||
+        description.includes('langchain'))
+    ) {
+      return true;
+    }
+
+    // Match query words in project fields (title, technologies, description)
+    const matchesQueryWord = queryWords.some(
+      (word) =>
+        title.includes(word) ||
+        technologies.includes(word) ||
+        (word.length > 3 && description.includes(word)),
+    );
+
+    if (matchesQueryWord) return true;
+
+    // Match project title or tech words in the user query
+    const titleAndTechWords = [
+      ...title.split(/[^a-z0-9+#_.-]+/),
+      ...technologies.split(/[^a-z0-9+#_.-]+/),
+    ].filter((word) => word.length > 2 && !ignoredWords.has(word));
+
+    return titleAndTechWords.some((word) => lower.includes(word));
   });
 }
 
@@ -112,6 +162,51 @@ export function getPortfolioFallback(message: string) {
   const linkedIn =
     socialLinks.find((link) => link.name === 'LinkedIn')?.href ?? '';
 
+  if (includesAny(lower, ['rag', 'agent', 'agentic'])) {
+    const agentProjects = projects.filter(
+      (p) =>
+        p.title.toLowerCase().includes('rag') ||
+        p.title.toLowerCase().includes('automation') ||
+        p.description.toLowerCase().includes('langchain') ||
+        p.description.toLowerCase().includes('rag'),
+    );
+    return [
+      'My AI agent and RAG projects include:',
+      agentProjects.map(formatProject).join('\n'),
+      '',
+      `You can also view my AI/ML CV on the [Resume page](/resume) or check my GitHub: [ragnaar07](${github}).`,
+    ].join('\n');
+  }
+
+  if (includesAny(lower, ['predictive', 'prediction'])) {
+    const predictiveProjects = projects.filter(
+      (p) =>
+        p.title.toLowerCase().includes('predictive') ||
+        p.description.toLowerCase().includes('predictive') ||
+        p.description.toLowerCase().includes('prediction'),
+    );
+    return [
+      'My predictive maintenance and ML modeling work includes:',
+      predictiveProjects.map(formatProject).join('\n'),
+      '',
+      'This project features an end-to-end ML pipeline with XGBoost, Random Forest, SHAP explainability, and Streamlit deployment.',
+    ].join('\n');
+  }
+
+  if (includesAny(lower, ['concurrency', 'concurrent', 'multithreading'])) {
+    const concurrencyProjects = projects.filter(
+      (p) =>
+        p.description.toLowerCase().includes('concurrent') ||
+        p.title.toLowerCase().includes('rule engine'),
+    );
+    return [
+      'My concurrency and high-performance systems work includes:',
+      concurrencyProjects.map(formatProject).join('\n'),
+      '',
+      'In addition, at Alstom I engineered multi-stage C++ data pipelines and Oat++ REST middleware with move semantics and thread safety for safety-critical railway control data.',
+    ].join('\n');
+  }
+
   if (
     includesAny(lower, [
       'project',
@@ -169,16 +264,26 @@ export function getPortfolioFallback(message: string) {
       'langchain',
       'python',
       'c++',
+      'cpp',
       'linux',
       'fastapi',
       'work with',
+      'hardware',
+      'electronics',
+      'embedded',
+      'analog',
+      'verilog',
+      'dsp',
+      'arduino',
+      'stm32',
+      'semiconductor',
     ])
   ) {
     return [
-      `I focus on AI/ML and production software. Core skills: **${skills}**.`,
-      '- I use Python for ML, automation, data processing, and API workflows.',
-      '- I use C++ and Linux for systems, middleware-style validation, and industrial software work.',
-      '- I have GenAI/RAG experience with LangChain, FAISS/vector search, prompt templates, and Hugging Face/OpenAI-style workflows.',
+      `I bridge hardware, C++ systems, and machine learning. Core skills: **${skills}**.`,
+      '- **Low-Level & Systems**: C++ and Linux for modular middleware, safety-critical railway validation at Alstom, and system automation.',
+      '- **Hardware & Electronics**: Analog circuit design, PCB layouts, semiconductor physics, Verilog, DSP, and microcontroller work with Arduino and STM32.',
+      '- **Machine Learning & Python**: Deep learning, Transformers, predictive maintenance models, and Python data pipelines.',
     ].join('\n');
   }
 
@@ -248,13 +353,16 @@ export function getPortfolioFallback(message: string) {
     ])
   ) {
     const experienceList = experiences
-      .map(
-        (experience) =>
-          `- **${experience.position}** at **${experience.company}**, ${experience.location} (${experience.startDate} - ${experience.endDate}): ${experience.description[0]} (Technologies: ${experience.technologies.map((t) => t.name).join(', ')})`,
-      )
-      .join('\n');
+      .map((experience) => {
+        const bullets = experience.description
+          .map((item) => `  * ${item}`)
+          .join('\n');
+        const tech = experience.technologies.map((t) => t.name).join(', ');
+        return `- **${experience.position}** at **${experience.company}**, ${experience.location} (${experience.startDate} - ${experience.endDate}):\n${bullets}\n  * **Technologies**: ${tech}`;
+      })
+      .join('\n\n');
 
-    return `My experience:\n${experienceList}`;
+    return `My experience:\n\n${experienceList}`;
   }
 
   if (
@@ -268,9 +376,47 @@ export function getPortfolioFallback(message: string) {
       'nit',
       'hamirpur',
       'graduation',
+      'school',
+      'schooling',
+      'marks',
+      'science congress',
+      'dav',
     ])
   ) {
-    return `I studied **${about.education.degree}** at **${about.education.institution}**. I started in **${about.education.startYear}** and graduated in **${about.education.graduationYear}**.`;
+    return [
+      `I graduated with a **${about.education.degree}** from **${about.education.institution}** (2021 - 2025).`,
+      `- **Schooling**: DAV Public School Lathiani (Class X: 90.8%, Class XII: 95.6%).`,
+      `- **Awards**: Winner at the Children's Science Congress Fair.`,
+    ].join('\n');
+  }
+
+  if (
+    includesAny(lower, [
+      'hobbies',
+      'hobby',
+      'interest',
+      'interests',
+      'outside work',
+      'free time',
+      'himachal',
+      'bangana',
+      'mountain',
+      'mountains',
+      'trekking',
+      'trek',
+      'spiti',
+      'buran ghati',
+      'fitness',
+      'gym',
+    ])
+  ) {
+    return [
+      `I'm from **Bangana, Himachal Pradesh**, and I'm deeply grounded in the mountains and physical discipline:`,
+      `- **Trekking & Mountains**: High-altitude Himalayan treks (Spiti, Buran Ghati, Chanshal, Kedarkantha, Baralacha) and self-organized camping over crowded city cafés.`,
+      `- **Hands-on Hardware**: Circuit design (Proteus/Altium), discrete components (Zener diodes, voltage dividers), and physical Arduino/STM32 prototyping.`,
+      `- **Fitness & Discipline**: Consistent morning compound lifting and natural vegetarian nutrition.`,
+      `- **High-Concept Fiction**: Stories about relentless self-mastery and puzzle-box worlds like *Inception*, *Fight Club*, and *Solo Leveling*.`,
+    ].join('\n');
   }
 
   if (
@@ -339,6 +485,7 @@ export function hasPortfolioIntent(message: string) {
     'fastapi',
     'work with',
     'project',
+    'projects',
     'github',
     'repo',
     'portfolio',
@@ -361,7 +508,10 @@ export function hasPortfolioIntent(message: string) {
     'agent',
     'agentic',
     'predictive',
+    'prediction',
     'concurrency',
+    'concurrent',
+    'multithreading',
     'job',
     'intern',
     'training',

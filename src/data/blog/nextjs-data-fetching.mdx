@@ -1,10 +1,11 @@
 ---
-title: "Modern Data Fetching Patterns in Next.js App Router"
-description: "An architectural guide to data fetching in Next.js App Router using React Server Components, extended fetch caching, and granular revalidation."
-date: "2026-03-15"
-tags: ["Next.js", "React", "TypeScript", "Web Architecture"]
+title: 'Modern Data Fetching Patterns in Next.js App Router'
+description: 'An architectural guide to data fetching in Next.js App Router using React Server Components, extended fetch caching, and granular revalidation.'
+date: '2026-03-15'
+tags: ['Next.js', 'React', 'TypeScript', 'Web Architecture']
+category: 'Next.js & React'
 isPublished: true
-image: "/blog/nextjs-data-fetching.png"
+image: '/blog/nextjs-data-fetching.png'
 ---
 
 ## Introduction
@@ -58,6 +59,7 @@ export default async function ProjectPage({
 Next.js extends the native `fetch` Web API with custom cache control options:
 
 ### Time-Based Revalidation (ISR)
+
 Setting `{ next: { revalidate: 60 } }` caches the response and automatically re-fetches in the background when requests arrive after the expiration window:
 
 ```typescript
@@ -68,6 +70,7 @@ const res = await fetch('https://api.example.com/feed', {
 ```
 
 ### Tag-Based On-Demand Revalidation
+
 By tagging requests, mutations in server actions or webhook handlers can immediately purge specific cache entries:
 
 ```typescript
@@ -99,7 +102,7 @@ import { Suspense } from 'react';
 
 export default function Dashboard() {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
       <Suspense fallback={<MetricsSkeleton />}>
         <AsyncMetrics />
       </Suspense>

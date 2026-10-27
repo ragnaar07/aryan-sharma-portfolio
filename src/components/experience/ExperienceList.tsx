@@ -1,5 +1,6 @@
-import { type Experience } from '@/config/Experience';
 import React from 'react';
+
+import { type Experience } from '@/config/Experience';
 
 import { ExperienceCard } from './ExperienceCard';
 

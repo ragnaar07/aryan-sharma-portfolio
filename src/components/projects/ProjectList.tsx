@@ -1,5 +1,7 @@
-import { type Project } from '@/types/project';
 import React from 'react';
+
+import { cn } from '@/lib/utils';
+import { type Project } from '@/types/project';
 
 import { ProjectCard } from './ProjectCard';
 
@@ -19,7 +21,10 @@ export function ProjectList({ projects, className }: ProjectListProps) {
 
   return (
     <div
-      className={`grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-2 ${className}`}
+      className={cn(
+        'grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-2',
+        className,
+      )}
     >
       {projects.map((project: Project) => (
         <ProjectCard key={project.title} project={project} />

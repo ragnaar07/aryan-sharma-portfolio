@@ -1,5 +1,10 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { toast } from 'sonner';
+import * as z from 'zod';
+
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -18,10 +23,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
-import * as z from 'zod';
+import { contactConfig } from '@/config/Contact';
 
 import Chat from '../svgs/Chat';
 
@@ -82,7 +84,7 @@ export default function ContactForm() {
         .join('\n'),
     );
 
-    window.location.href = `mailto:aryan.engineer783@gmail.com?subject=${subject}&body=${body}`;
+    window.location.href = `mailto:${contactConfig.email}?subject=${subject}&body=${body}`;
     toast.success('Opening your email app...');
   };
 
