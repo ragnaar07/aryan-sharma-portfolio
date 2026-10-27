@@ -15,11 +15,13 @@ import { getSiteUrl, siteConfig } from '@/config/Meta';
 import {
   extractHeadings,
   getBlogPostBySlug,
+  getBlogPostSlugs,
   getPublishedBlogPostsAsync,
   getRelatedPosts,
 } from '@/lib/blog';
 
 export const dynamicParams = true;
+export const revalidate = 60;
 
 interface BlogPostPageProps {
   params: Promise<{
@@ -27,12 +29,12 @@ interface BlogPostPageProps {
   }>;
 }
 
-// Generate static paths for all published blog posts
+// Generate static paths for version-controlled blog posts; dynamic Redis posts are rendered on-demand
 export async function generateStaticParams() {
-  const posts = await getPublishedBlogPostsAsync();
+  const slugs = getBlogPostSlugs();
 
-  return posts.map((post) => ({
-    slug: post.slug,
+  return slugs.map((slug) => ({
+    slug,
   }));
 }
 

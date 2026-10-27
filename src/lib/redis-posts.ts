@@ -22,8 +22,24 @@ export function getRedisClient(): Redis | null {
     return null;
   }
 
-  redisInstance = new Redis({ url, token });
+  redisInstance = new Redis({
+    url,
+    token,
+    cache: 'default',
+  });
   return redisInstance;
+}
+
+/**
+ * Checks whether an error is Next.js internal dynamic-server bail-out error.
+ * These errors must NEVER be swallowed, or Next.js static prerendering fails.
+ */
+function isDynamicServerError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false;
+  return (
+    'digest' in error &&
+    (error as { digest?: string }).digest === 'DYNAMIC_SERVER_USAGE'
+  );
 }
 
 /**
@@ -121,6 +137,9 @@ export async function listRedisPosts(): Promise<Post[]> {
 
     return posts;
   } catch (error) {
+    if (isDynamicServerError(error)) {
+      throw error;
+    }
     console.warn(
       '[redis-posts] Failed to list posts from Upstash Redis:',
       error,
@@ -163,6 +182,9 @@ export async function getRedisPostBySlug(slug: string): Promise<Post | null> {
       return null;
     }
   } catch (error) {
+    if (isDynamicServerError(error)) {
+      throw error;
+    }
     console.warn(
       `[redis-posts] Failed to get post "${slug}" from Upstash Redis:`,
       error,

@@ -9,6 +9,8 @@ import { getAllTagsAsync, getPublishedBlogPostsAsync } from '@/lib/blog';
 
 import { BlogPageClient } from './BlogPageClient';
 
+export const revalidate = 60;
+
 export const generateMetadata = (): Metadata => {
   const metadata = getMetadata('/blog');
   return {
