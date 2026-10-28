@@ -15,6 +15,7 @@ import {
   normalizeSlug,
   postFormSchema,
 } from '@/lib/blog-validation';
+import { preprocessMdxContent, validateMdxCompilation } from '@/lib/mdx-server';
 import { deleteCover } from '@/lib/redis-covers';
 import { getRedisPostBySlug } from '@/lib/redis-posts';
 import type { Post } from '@/types/blog';
@@ -68,6 +69,25 @@ export async function savePostAction(
   try {
     const validated = validation.data;
     const cleanSlug = normalizeSlug(validated.slug);
+
+    // Validate MDX compilation before touching Redis
+    const mdxCheck = await validateMdxCompilation(validated.content);
+    if (!mdxCheck.valid) {
+      const errorMsg =
+        mdxCheck.line && mdxCheck.column
+          ? `MDX compilation error at line ${mdxCheck.line}, column ${mdxCheck.column}: ${mdxCheck.reason || mdxCheck.error}`
+          : `MDX compilation error: ${mdxCheck.reason || mdxCheck.error || 'Could not parse expression with acorn'}`;
+      return {
+        success: false,
+        message: errorMsg,
+        errors: {
+          content: [errorMsg],
+        },
+        values: rawValues,
+      };
+    }
+
+    const preprocessedContent = preprocessMdxContent(validated.content);
     const existingPost = await getPostForAdminBySlug(cleanSlug);
 
     const nowIso = new Date().toISOString();
@@ -99,7 +119,7 @@ export async function savePostAction(
       slug: cleanSlug,
       title: validated.title,
       description: validated.description,
-      content: validated.content,
+      content: preprocessedContent,
       coverImage: validated.coverImage || undefined,
       image: validated.coverImage || undefined,
       category: validated.category,
@@ -220,4 +240,19 @@ export async function deletePostAction(
           : adminBlogLabels.errors.generalDeleteError,
     };
   }
+}
+
+/**
+ * Server Action for real-time live preview MDX syntax validation in PostForm.
+ * First line verifies admin authorization via requireAdmin().
+ */
+export async function validateMdxAction(content: string): Promise<{
+  valid: boolean;
+  error?: string;
+  reason?: string;
+  line?: number;
+  column?: number;
+}> {
+  await requireAdmin({ redirectOnFail: false });
+  return validateMdxCompilation(content);
 }

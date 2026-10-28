@@ -3,6 +3,7 @@ import 'server-only';
 
 import { calculateReadingTime } from '@/lib/blog-reading-time';
 import { normalizeSlug } from '@/lib/blog-validation';
+import { preprocessMdxContent } from '@/lib/mdx-sanitize';
 import type { Post } from '@/types/blog';
 
 export const REDIS_POSTS_HASH_KEY = 'portfolio:blog:posts';
@@ -89,7 +90,8 @@ export function normalizePost(raw: unknown): Post | null {
 
   const slug = normalizeSlug(parsed.slug);
   const title = typeof parsed.title === 'string' ? parsed.title.trim() : '';
-  const content = typeof parsed.content === 'string' ? parsed.content : '';
+  const rawContent = typeof parsed.content === 'string' ? parsed.content : '';
+  const content = preprocessMdxContent(rawContent);
 
   if (!slug || !title || !content) {
     return null;

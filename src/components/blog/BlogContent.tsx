@@ -1,15 +1,17 @@
-import rehypeHighlight from '@shikijs/rehype';
 import 'katex/dist/katex.min.css';
-import { Clock } from 'lucide-react';
-import { MDXRemote } from 'next-mdx-remote/rsc';
+import { AlertTriangle, Clock } from 'lucide-react';
+import { compileMDX } from 'next-mdx-remote/rsc';
 import Image from 'next/image';
-import rehypeKatex from 'rehype-katex';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
 
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { TocHeading } from '@/lib/blog-toc';
+import {
+  preprocessMdxContent,
+  sharedMdxOptions,
+  validateMdxCompilation,
+} from '@/lib/mdx-server';
 import { BlogFrontmatter } from '@/types/blog';
 
 import Calender from '../svgs/Calender';
@@ -20,12 +22,14 @@ interface BlogContentProps {
   frontmatter: BlogFrontmatter;
   content: string;
   headings?: TocHeading[];
+  slug?: string;
 }
 
-export function BlogContent({
+export async function BlogContent({
   frontmatter,
   content,
   headings = [],
+  slug,
 }: BlogContentProps) {
   const {
     title,
@@ -61,6 +65,34 @@ export function BlogContent({
   }
 
   const safeTags = Array.isArray(tags) ? tags : [];
+
+  // Compile MDX safely with pre-processing
+  let mdxElement: React.ReactNode = null;
+  let hasCompilationError = false;
+
+  const preprocessed = preprocessMdxContent(content);
+
+  try {
+    const compiled = await compileMDX({
+      source: preprocessed,
+      components: BlogComponents,
+      options: {
+        mdxOptions: sharedMdxOptions,
+      },
+    });
+    mdxElement = compiled.content;
+  } catch (err: unknown) {
+    hasCompilationError = true;
+    const errorDetails = await validateMdxCompilation(content);
+    const lineCol =
+      errorDetails.line && errorDetails.column
+        ? ` (line ${errorDetails.line}, column ${errorDetails.column})`
+        : '';
+    console.error(
+      `[BlogContent] MDX compilation error for slug "${slug || title}"${lineCol}:`,
+      errorDetails.reason || (err instanceof Error ? err.message : err),
+    );
+  }
 
   return (
     <article className="w-full">
@@ -136,27 +168,27 @@ export function BlogContent({
         <Separator className="mt-8" />
       </header>
 
-      {/* MDX Content */}
-      <div className="prose prose-neutral dark:prose-invert text-foreground/90 max-w-none">
-        <MDXRemote
-          source={content}
-          components={BlogComponents}
-          options={{
-            mdxOptions: {
-              remarkPlugins: [remarkGfm, remarkMath],
-              rehypePlugins: [
-                rehypeKatex,
-                [
-                  rehypeHighlight,
-                  {
-                    theme: 'github-dark',
-                  },
-                ],
-              ],
-            },
-          }}
-        />
-      </div>
+      {/* MDX Content or Plain-Text Fallback */}
+      {hasCompilationError ? (
+        <div className="space-y-6">
+          <Alert className="border-amber-500/30 bg-amber-500/10 text-amber-900 dark:text-amber-200">
+            <AlertTriangle className="size-4 text-amber-600 dark:text-amber-400" />
+            <AlertTitle>Formatting Notice</AlertTitle>
+            <AlertDescription className="text-xs">
+              This article content is being rendered in plain-text fallback mode
+              because an expression in the article could not be compiled into
+              interactive MDX.
+            </AlertDescription>
+          </Alert>
+          <div className="text-foreground/90 font-sans text-base leading-relaxed whitespace-pre-wrap">
+            {content}
+          </div>
+        </div>
+      ) : (
+        <div className="prose prose-neutral dark:prose-invert text-foreground/90 max-w-none">
+          {mdxElement}
+        </div>
+      )}
     </article>
   );
 }
