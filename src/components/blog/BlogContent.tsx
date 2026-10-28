@@ -87,10 +87,16 @@ export async function BlogContent({
     const lineCol =
       errorDetails.line && errorDetails.column
         ? ` (line ${errorDetails.line}, column ${errorDetails.column})`
-        : '';
+        : errorDetails.line
+          ? ` (line ${errorDetails.line})`
+          : '';
+    const excerpt = errorDetails.sourceExcerpt
+      ? ` -> "${errorDetails.sourceExcerpt}"`
+      : '';
     console.error(
       `[BlogContent] MDX compilation error for slug "${slug || title}"${lineCol}:`,
       errorDetails.reason || (err instanceof Error ? err.message : err),
+      excerpt,
     );
   }
 

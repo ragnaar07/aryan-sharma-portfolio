@@ -229,10 +229,8 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               </div>
 
               {/* Desktop Sticky Sidebar */}
-              <aside className="hidden lg:block">
-                <div className="sticky top-28">
-                  <DesktopTableOfContents headings={headings} />
-                </div>
+              <aside className="hidden lg:sticky lg:top-28 lg:block lg:self-start">
+                <DesktopTableOfContents headings={headings} />
               </aside>
             </div>
           ) : (

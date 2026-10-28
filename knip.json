@@ -2,8 +2,9 @@
   "$schema": "https://unpkg.com/knip@5/schema.json",
   "entry": ["src/**/*.{ts,tsx,js,jsx}"],
   "project": ["**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}!"],
-  "ignore": ["public/oneko/oneko.js", ".agents/**"],
+  "ignore": ["public/oneko/oneko.js", ".agents/**", "scripts/**"],
   "ignoreDependencies": [
+    "tsx",
     "@mdx-js/loader",
     "@mdx-js/react",
     "@next/mdx",

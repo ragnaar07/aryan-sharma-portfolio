@@ -209,6 +209,43 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
     'split',
   );
 
+  // Sync scroll state and refs
+  const [syncScroll, setSyncScroll] = useState<boolean>(false);
+  const editorTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+  const isSyncingRef = useRef<boolean>(false);
+
+  // Proportional Unidirectional Sync Scroll: Editor drives Preview
+  useEffect(() => {
+    const editorEl = editorTextareaRef.current;
+    const previewEl = previewContainerRef.current;
+    if (!editorEl || !previewEl || !syncScroll) return;
+
+    const handleEditorScroll = () => {
+      if (isSyncingRef.current) return;
+      isSyncingRef.current = true;
+
+      const editorScrollable = editorEl.scrollHeight - editorEl.clientHeight;
+      const previewScrollable = previewEl.scrollHeight - previewEl.clientHeight;
+
+      if (editorScrollable > 0 && previewScrollable > 0) {
+        const ratio = editorEl.scrollTop / editorScrollable;
+        previewEl.scrollTop = Math.round(ratio * previewScrollable);
+      }
+
+      requestAnimationFrame(() => {
+        isSyncingRef.current = false;
+      });
+    };
+
+    handleEditorScroll();
+
+    editorEl.addEventListener('scroll', handleEditorScroll, { passive: true });
+    return () => {
+      editorEl.removeEventListener('scroll', handleEditorScroll);
+    };
+  }, [syncScroll, previewMode]);
+
   // Debounced real-time MDX validation
   useEffect(() => {
     if (!contentValue.trim()) {
@@ -223,9 +260,14 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
           const loc =
             result.line && result.column
               ? `Line ${result.line}, Column ${result.column}: `
-              : '';
+              : result.line
+                ? `Line ${result.line}: `
+                : '';
+          const excerpt = result.sourceExcerpt
+            ? `\n> ${result.sourceExcerpt}`
+            : '';
           setMdxSyntaxError(
-            `${loc}${result.reason || result.error || 'Syntax error'}`,
+            `${loc}${result.reason || result.error || 'Syntax error'}${excerpt}`,
           );
         } else {
           setMdxSyntaxError(null);
@@ -326,8 +368,8 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
 
   return (
     <form action={formAction} className="space-y-8">
-      {/* Top Action Bar */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      {/* Top Action Bar (Sticky beneath AdminHeader) */}
+      <div className="bg-card/95 border-border sticky top-16 z-30 flex flex-col gap-3 rounded-xl border p-3 shadow-sm backdrop-blur-md transition-all sm:flex-row sm:items-center sm:justify-between sm:p-4">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" asChild>
             <Link
@@ -775,8 +817,8 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
       </div>
 
       {/* Editor & Live MDX Preview Section */}
-      <Card className="border-border bg-card">
-        <CardHeader className="flex flex-row items-center justify-between pb-3">
+      <Card className="border-border bg-card flex min-h-0 flex-col">
+        <CardHeader className="border-border/40 flex shrink-0 flex-row items-center justify-between border-b pb-3">
           <div>
             <CardTitle className="text-base font-semibold">
               {adminBlogLabels.form.contentLabel}{' '}
@@ -791,7 +833,7 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
             {contentValue.length.toLocaleString()} characters
           </Badge>
         </CardHeader>
-        <CardContent>
+        <CardContent className="min-h-0 flex-1 p-4 pt-4 sm:p-6">
           {/* Error Message for Content */}
           {state.errors?.content && (
             <p className="text-destructive mb-3 text-xs font-medium">
@@ -801,7 +843,7 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
 
           {/* Conditional Layout Based on previewMode */}
           <div
-            className={`grid gap-6 ${
+            className={`grid min-h-0 gap-6 ${
               previewMode === 'split'
                 ? 'grid-cols-1 lg:grid-cols-2'
                 : 'grid-cols-1'
@@ -809,75 +851,105 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
           >
             {/* Editor Pane (visible in 'write' or 'split' mode) */}
             {(previewMode === 'write' || previewMode === 'split') && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground text-xs font-medium tracking-wider uppercase">
+              <div className="border-border bg-card flex h-[70dvh] min-h-0 min-h-[380px] flex-col overflow-hidden rounded-lg border lg:h-[calc(100dvh-15rem)] lg:min-h-[450px]">
+                {/* Pinned Header */}
+                <div className="bg-card border-border/60 sticky top-0 z-10 flex shrink-0 flex-col gap-1.5 border-b p-3">
+                  <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
                     Editor (MDX / Markdown)
                   </span>
+                  <p className="text-muted-foreground text-xs leading-normal">
+                    <span className="text-foreground font-medium">
+                      Syntax guide:
+                    </span>{' '}
+                    use{' '}
+                    <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
+                      $...$
+                    </code>{' '}
+                    /{' '}
+                    <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
+                      $$...$$
+                    </code>{' '}
+                    for math, backticks for code, avoid raw{' '}
+                    <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
+                      {'{\u00A0}'}
+                    </code>{' '}
+                    and{' '}
+                    <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
+                      &lt;
+                    </code>{' '}
+                    in plain text.
+                  </p>
                 </div>
-                <Textarea
-                  id="content"
-                  name="content"
-                  value={contentValue}
-                  onChange={(e) => setContentValue(e.target.value)}
-                  placeholder={adminBlogLabels.form.contentPlaceholder}
-                  rows={24}
-                  disabled={isPending}
-                  className="min-h-[500px] font-mono text-sm leading-relaxed"
-                  aria-invalid={Boolean(state.errors?.content)}
-                />
-                <p className="text-muted-foreground text-xs leading-normal">
-                  <span className="text-foreground font-medium">
-                    Syntax guide:
-                  </span>{' '}
-                  use{' '}
-                  <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
-                    $...$
-                  </code>{' '}
-                  /{' '}
-                  <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
-                    $$...$$
-                  </code>{' '}
-                  for math, backticks for code, avoid raw{' '}
-                  <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
-                    {'{\u00A0}'}
-                  </code>{' '}
-                  and{' '}
-                  <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
-                    &lt;
-                  </code>{' '}
-                  in plain text.
-                </p>
+
+                {/* Textarea Container */}
+                <div className="relative min-h-0 flex-1">
+                  <Textarea
+                    ref={editorTextareaRef}
+                    id="content"
+                    name="content"
+                    value={contentValue}
+                    onChange={(e) => setContentValue(e.target.value)}
+                    placeholder={adminBlogLabels.form.contentPlaceholder}
+                    disabled={isPending}
+                    data-lenis-prevent
+                    className="[field-sizing:normal] h-full w-full resize-none overflow-y-auto overscroll-contain rounded-none border-0 bg-transparent p-4 font-mono text-sm leading-relaxed focus-visible:ring-0 focus-visible:ring-offset-0"
+                    aria-invalid={Boolean(state.errors?.content)}
+                  />
+                </div>
               </div>
             )}
 
             {/* Live Preview Pane (visible in 'preview' or 'split' mode) */}
             {(previewMode === 'preview' || previewMode === 'split') && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-medium tracking-wider uppercase">
-                    <Eye className="text-primary size-3.5" />
-                    <span>Live Post Preview</span>
-                  </span>
-                  <Badge variant="secondary" className="text-[10px]">
-                    Site Typography
-                  </Badge>
+              <div className="border-border bg-card flex h-[70dvh] min-h-0 min-h-[380px] flex-col overflow-hidden rounded-lg border lg:h-[calc(100dvh-15rem)] lg:min-h-[450px]">
+                {/* Pinned Header */}
+                <div className="bg-card border-border/60 sticky top-0 z-10 flex shrink-0 flex-col gap-2 border-b p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground flex items-center gap-1.5 text-xs font-semibold tracking-wider uppercase">
+                      <Eye className="text-primary size-3.5" />
+                      <span>Live Post Preview</span>
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <Switch
+                          id="sync-scroll-preview"
+                          checked={syncScroll}
+                          onCheckedChange={setSyncScroll}
+                          className="scale-75"
+                        />
+                        <Label
+                          htmlFor="sync-scroll-preview"
+                          className="text-muted-foreground hover:text-foreground cursor-pointer text-xs select-none"
+                        >
+                          Sync scroll
+                        </Label>
+                      </div>
+                      <Badge variant="secondary" className="text-[10px]">
+                        Site Typography
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Pinned MDX syntax compilation warning banner */}
+                  {(mdxSyntaxError || state.errors?.content) && (
+                    <Alert variant="destructive" className="py-2.5">
+                      <AlertCircle className="size-4" />
+                      <AlertTitle className="text-xs font-semibold">
+                        MDX Syntax Compilation Error
+                      </AlertTitle>
+                      <AlertDescription className="font-mono text-xs whitespace-pre-wrap">
+                        {mdxSyntaxError || state.errors?.content?.[0]}
+                      </AlertDescription>
+                    </Alert>
+                  )}
                 </div>
 
-                {/* Inline MDX syntax compilation warning banner */}
-                {(mdxSyntaxError || state.errors?.content) && (
-                  <Alert variant="destructive" className="py-2.5">
-                    <AlertCircle className="size-4" />
-                    <AlertTitle className="text-xs font-semibold">
-                      MDX Syntax Compilation Error
-                    </AlertTitle>
-                    <AlertDescription className="text-xs">
-                      {mdxSyntaxError || state.errors?.content?.[0]}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <div className="border-border bg-muted/10 max-h-[700px] min-h-[500px] overflow-y-auto rounded-lg border p-6">
+                {/* Scrollable Preview Body */}
+                <div
+                  ref={previewContainerRef}
+                  data-lenis-prevent
+                  className="bg-muted/10 min-h-0 flex-1 overflow-y-auto overscroll-contain p-6"
+                >
                   {contentValue.trim() ? (
                     <article className="prose prose-neutral dark:prose-invert max-w-none">
                       <ReactMarkdown
