@@ -1,6 +1,7 @@
-import { type Experience, experiences } from '@/config/Experience';
 import { Link } from 'next-view-transitions';
 import React from 'react';
+
+import { type Experience, experiences } from '@/config/Experience';
 
 import Container from '../common/Container';
 import SectionHeading from '../common/SectionHeading';

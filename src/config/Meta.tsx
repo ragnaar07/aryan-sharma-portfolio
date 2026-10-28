@@ -218,6 +218,40 @@ export const pageMetadata: Record<string, PageMeta> = {
     ogImage: '/meta/setup.png',
     twitterCard: 'summary_large_image',
   },
+
+  // Journey page
+  '/journey': {
+    title: 'Journey - Milestones & Personal Growth',
+    description:
+      'Explore my journey, key milestones, learning paths, and personal growth in software engineering and artificial intelligence.',
+    keywords: [
+      'journey',
+      'milestones',
+      'career path',
+      'growth',
+      'software engineering',
+      'ai',
+    ],
+    ogImage: '/meta/work.png',
+    twitterCard: 'summary_large_image',
+  },
+
+  // Certificates page
+  '/journey/certificates': {
+    title: 'Certificates & Credentials - Aryan Sharma',
+    description:
+      'Browse professional certifications, credentials, and achievements earned in software development, machine learning, and cloud computing.',
+    keywords: [
+      'certificates',
+      'credentials',
+      'achievements',
+      'certifications',
+      'awards',
+      'learning',
+    ],
+    ogImage: '/meta/projects.png',
+    twitterCard: 'summary_large_image',
+  },
 };
 
 // Helper function to get metadata for a specific page

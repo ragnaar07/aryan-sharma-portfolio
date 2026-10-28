@@ -1,12 +1,15 @@
+import { Download, ExternalLink, FileText } from 'lucide-react';
+import { Metadata } from 'next';
+import Link from 'next/link';
+import React from 'react';
+
 import Container from '@/components/common/Container';
 import CheckCircle from '@/components/svgs/CheckCircle';
 import { Separator } from '@/components/ui/separator';
 import { generateMetadata as getMetadata } from '@/config/Meta';
 import { settingsJson, steps } from '@/config/Setup';
-import { Download, ExternalLink, FileText } from 'lucide-react';
-import { Metadata } from 'next';
-import Link from 'next/link';
-import React from 'react';
+
+import { SetupCopyButton } from './SetupCopyButton';
 
 export const metadata: Metadata = {
   ...getMetadata('/setup'),
@@ -128,9 +131,7 @@ export default function SetupPage() {
               <div className="bg-muted/30 overflow-hidden rounded-lg border border-black/10 dark:border-white/10">
                 <div className="bg-muted flex items-center justify-between border-b border-black/10 px-3 py-2 md:px-4 dark:border-white/10">
                   <span className="text-sm font-medium">settings.json</span>
-                  <button className="text-muted-foreground hover:text-primary text-xs transition-colors">
-                    Copy
-                  </button>
+                  <SetupCopyButton text={settingsJson} />
                 </div>
                 <div className="overflow-x-auto">
                   <pre className="min-w-full p-3 text-xs md:p-4">

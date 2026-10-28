@@ -1,5 +1,6 @@
-import { footerConfig } from '@/config/Footer';
 import React from 'react';
+
+import { footerConfig } from '@/config/Footer';
 
 import Container from './Container';
 

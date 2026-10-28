@@ -1,3 +1,7 @@
+import { Clock } from 'lucide-react';
+import { Link } from 'next-view-transitions';
+import Image from 'next/image';
+
 import { Badge } from '@/components/ui/badge';
 import {
   Card,
@@ -6,9 +10,6 @@ import {
   CardHeader,
 } from '@/components/ui/card';
 import { BlogPostPreview } from '@/types/blog';
-import { Clock } from 'lucide-react';
-import { Link } from 'next-view-transitions';
-import Image from 'next/image';
 
 import ArrowRight from '../svgs/ArrowRight';
 import Calender from '../svgs/Calender';
@@ -25,18 +26,33 @@ export function BlogCard({ post }: BlogCardProps) {
     image,
     coverImage,
     category = 'Engineering',
-    tags,
+    tags = [],
     date,
     readingTime = '1 min read',
   } = frontmatter;
 
-  const displayImage = coverImage || image || '/assets/me.png';
+  const rawImage = coverImage || image;
+  const displayImage =
+    typeof rawImage === 'string' && rawImage.trim().length > 0
+      ? rawImage.trim()
+      : '/assets/me.png';
+  const isCoverApi = displayImage.startsWith('/api/blog/cover/');
 
-  const formattedDate = new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  let formattedDate = '';
+  try {
+    const d = new Date(date);
+    if (!Number.isNaN(d.getTime())) {
+      formattedDate = d.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    }
+  } catch {
+    formattedDate = '';
+  }
+
+  const safeTags = Array.isArray(tags) ? tags : [];
 
   return (
     <Card className="group border-border bg-card hover:border-primary/50 flex h-full w-full flex-col overflow-hidden rounded-xl border p-0 shadow-sm transition-all hover:shadow-md">
@@ -47,6 +63,7 @@ export function BlogCard({ post }: BlogCardProps) {
               src={displayImage}
               alt={title}
               fill
+              unoptimized={isCoverApi}
               className="object-cover transition-transform duration-300 group-hover:scale-105"
             />
           </Link>
@@ -63,11 +80,15 @@ export function BlogCard({ post }: BlogCardProps) {
       <CardContent className="flex-1 p-5">
         <div className="space-y-3">
           <div className="text-muted-foreground flex items-center gap-3 text-xs">
-            <time className="flex items-center gap-1.5" dateTime={date}>
-              <Calender className="size-3.5 shrink-0" />
-              <span>{formattedDate}</span>
-            </time>
-            <span>•</span>
+            {formattedDate && (
+              <>
+                <time className="flex items-center gap-1.5" dateTime={date}>
+                  <Calender className="size-3.5 shrink-0" />
+                  <span>{formattedDate}</span>
+                </time>
+                <span>•</span>
+              </>
+            )}
             <span className="flex items-center gap-1.5">
               <Clock className="size-3.5 shrink-0" />
               <span>{readingTime}</span>
@@ -88,7 +109,7 @@ export function BlogCard({ post }: BlogCardProps) {
       <CardFooter className="p-5 pt-0">
         <div className="flex w-full flex-col space-y-4">
           <div className="flex flex-wrap items-center gap-1.5">
-            {tags.slice(0, 3).map((tag) => (
+            {safeTags.slice(0, 3).map((tag) => (
               <Badge
                 key={tag}
                 variant="outline"
@@ -97,12 +118,12 @@ export function BlogCard({ post }: BlogCardProps) {
                 {tag}
               </Badge>
             ))}
-            {tags.length > 3 && (
+            {safeTags.length > 3 && (
               <Badge
                 variant="outline"
                 className="text-muted-foreground text-xs"
               >
-                +{tags.length - 3}
+                +{safeTags.length - 3}
               </Badge>
             )}
           </div>

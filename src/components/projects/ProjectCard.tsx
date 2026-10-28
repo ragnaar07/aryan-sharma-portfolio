@@ -1,5 +1,9 @@
 'use client';
 
+import { Link } from 'next-view-transitions';
+import Image from 'next/image';
+import React, { useState } from 'react';
+
 import {
   Card,
   CardContent,
@@ -13,9 +17,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { type Project } from '@/types/project';
-import { Link } from 'next-view-transitions';
-import Image from 'next/image';
-import React, { useState } from 'react';
 
 import ArrowRight from '../svgs/ArrowRight';
 import Github from '../svgs/Github';
@@ -86,11 +87,12 @@ export function ProjectCard({ project }: ProjectCardProps) {
             <div className="flex items-center gap-2">
               {project.link !== project.github && (
                 <Tooltip>
-                  <TooltipTrigger>
+                  <TooltipTrigger asChild>
                     <Link
                       className="text-secondary hover:text-primary flex size-6 items-center justify-center transition-colors"
                       href={project.link}
                       target="_blank"
+                      aria-label="View Website"
                     >
                       <Website />
                     </Link>
@@ -100,22 +102,23 @@ export function ProjectCard({ project }: ProjectCardProps) {
                   </TooltipContent>
                 </Tooltip>
               )}
-              <Tooltip>
-                <TooltipTrigger>
-                  {project.github && (
+              {project.github && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
                     <Link
                       className="text-secondary hover:text-primary flex size-6 items-center justify-center transition-colors"
                       href={project.github}
                       target="_blank"
+                      aria-label="View GitHub"
                     >
                       <Github />
                     </Link>
-                  )}
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>View GitHub</p>
-                </TooltipContent>
-              </Tooltip>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>View GitHub</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
             </div>
           </div>
 

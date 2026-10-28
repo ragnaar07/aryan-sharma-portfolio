@@ -1,3 +1,7 @@
+import { ShieldAlert } from 'lucide-react';
+import { Link } from 'next-view-transitions';
+import { redirect } from 'next/navigation';
+
 import { auth, signIn } from '@/auth';
 import Container from '@/components/common/Container';
 import ArrowLeft from '@/components/svgs/ArrowLeft';
@@ -12,15 +16,50 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { ShieldAlert } from 'lucide-react';
-import { Link } from 'next-view-transitions';
-import { redirect } from 'next/navigation';
 
 interface AdminLoginPageProps {
   searchParams: Promise<{
     error?: string;
     callbackUrl?: string;
   }>;
+}
+
+/**
+ * Validates and sanitizes callbackUrl against open redirect vulnerabilities.
+ * Ensures the target is strictly a relative same-origin pathname.
+ */
+function getSafeCallbackUrl(url?: unknown): string {
+  if (typeof url !== 'string' || !url.trim()) {
+    return '/admin';
+  }
+
+  const trimmed = url.trim();
+
+  // Must begin with a single '/' and not '//' or '/\' (protocol-relative or backslash bypasses)
+  if (
+    !trimmed.startsWith('/') ||
+    trimmed.startsWith('//') ||
+    trimmed.startsWith('/\\') ||
+    trimmed.includes('\\')
+  ) {
+    return '/admin';
+  }
+
+  try {
+    const parsed = new URL(trimmed, 'http://localhost');
+    if (parsed.origin !== 'http://localhost') {
+      return '/admin';
+    }
+
+    const safePath = parsed.pathname + parsed.search + parsed.hash;
+    if (!safePath.startsWith('/') || safePath.startsWith('//')) {
+      return '/admin';
+    }
+
+    return safePath;
+  } catch {
+    return '/admin';
+  }
 }
 
 export default async function AdminLoginPage({
@@ -34,7 +73,7 @@ export default async function AdminLoginPage({
 
   const params = await searchParams;
   const error = params?.error;
-  const callbackUrl = params?.callbackUrl || '/admin';
+  const safeCallbackUrl = getSafeCallbackUrl(params?.callbackUrl);
 
   return (
     <Container className="flex min-h-[calc(100vh-16rem)] items-center justify-center py-16">
@@ -76,7 +115,7 @@ export default async function AdminLoginPage({
           <form
             action={async () => {
               'use server';
-              await signIn('github', { redirectTo: callbackUrl });
+              await signIn('github', { redirectTo: safeCallbackUrl });
             }}
           >
             <Button type="submit" size="lg" className="w-full font-medium">

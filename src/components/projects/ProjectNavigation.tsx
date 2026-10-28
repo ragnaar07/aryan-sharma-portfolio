@@ -1,6 +1,7 @@
+import { Link } from 'next-view-transitions';
+
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Link } from 'next-view-transitions';
 
 import ArrowLeft from '../svgs/ArrowLeft';
 import ArrowUUpRight from '../svgs/ArrowUUpRight';

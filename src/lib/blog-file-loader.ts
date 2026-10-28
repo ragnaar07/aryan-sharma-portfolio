@@ -1,9 +1,10 @@
-import { calculateReadingTime } from '@/lib/blog-reading-time';
-import { BlogPost, BlogPostPreview, Post, blogPostToPost } from '@/types/blog';
 import fs from 'fs';
 import matter from 'gray-matter';
 import path from 'path';
 import 'server-only';
+
+import { calculateReadingTime } from '@/lib/blog-reading-time';
+import { BlogPost, BlogPostPreview, Post, blogPostToPost } from '@/types/blog';
 
 const blogDirectory = path.join(process.cwd(), 'src/data/blog');
 
@@ -103,8 +104,8 @@ export function getAllFileBlogPostPreviews(): BlogPostPreview[] {
     frontmatter: {
       title: post.title,
       description: post.description,
-      image: post.coverImage,
-      coverImage: post.coverImage,
+      image: post.coverImage || post.image || undefined,
+      coverImage: post.coverImage || post.image || undefined,
       category: post.category,
       youtubeId: post.youtubeId,
       tags: post.tags,

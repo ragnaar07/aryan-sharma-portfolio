@@ -1,7 +1,10 @@
+import { MetadataRoute } from 'next';
+
 import { getSiteUrl } from '@/config/Meta';
 import { getPublishedBlogPostsAsync } from '@/lib/blog';
 import { getPublishedProjectCaseStudies } from '@/lib/project';
-import { MetadataRoute } from 'next';
+
+export const revalidate = 3600;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl();

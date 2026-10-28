@@ -48,8 +48,11 @@ export const skillComponents = {
 export const heroConfig = {
   // Personal Information
   name: 'Aryan Sharma',
-  title: 'AI/ML Engineer | Software Engineer',
+  title: 'Systems & Software Engineer | C++, Hardware & AI/ML',
   avatar: '/assets/profile-avatar.jpg',
+  bannerImage: '/assets/dhauladhar.png',
+  bannerAlt:
+    'Panoramic view of the Dhauladhar mountain range in Himachal Pradesh',
 
   // Skills Configuration
   skills: [
@@ -88,7 +91,7 @@ export const heroConfig = {
   // Description Configuration
   description: {
     template:
-      'I build AI/ML and production software with {skills:1}, {skills:3}, {skills:4}, {skills:5}, and {skills:0}. My work spans predictive maintenance pipelines, practical AI agents, automation tooling, Linux systems, and industrial validation software.',
+      'Raised in Himachal Pradesh, I build across the entire stack—from {skills:0} systems and {skills:2} automation to embedded hardware, {skills:1}, and {skills:3}. I care about building high-performance software and intelligent pipelines that connect cleanly to physical systems.',
   },
 
   // Buttons Configuration

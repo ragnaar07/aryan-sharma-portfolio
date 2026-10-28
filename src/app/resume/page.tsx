@@ -1,11 +1,12 @@
+import { Metadata } from 'next';
+import Link from 'next/link';
+import React from 'react';
+
 import Container from '@/components/common/Container';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { generateMetadata as getMetadata } from '@/config/Meta';
 import { resumeConfig } from '@/config/Resume';
-import { Metadata } from 'next';
-import Link from 'next/link';
-import React from 'react';
 
 export const metadata: Metadata = {
   ...getMetadata('/resume'),
@@ -50,6 +51,7 @@ export default function ResumePage() {
         <div className="mx-auto max-w-2xl">
           <iframe
             src={resumeConfig.resumeUrl}
+            title="Aryan Sharma Resume"
             className="min-h-screen w-full"
           ></iframe>
         </div>

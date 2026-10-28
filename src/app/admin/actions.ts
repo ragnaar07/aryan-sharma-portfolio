@@ -1,18 +1,24 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
+import { redirect } from 'next/navigation';
+
 import { adminBlogLabels } from '@/config/BlogAdmin';
 import { requireAdmin } from '@/lib/auth-guard';
 import { deletePost, getPostForAdminBySlug, savePost } from '@/lib/blog';
+import { getFileBlogPostBySlug } from '@/lib/blog-file-loader';
 import {
   type PostActionState,
   type PostFormStateValues,
+  extractCoverId,
   extractYouTubeVideoId,
+  normalizeSlug,
   postFormSchema,
 } from '@/lib/blog-validation';
+import { preprocessMdxContent, validateMdxCompilation } from '@/lib/mdx-server';
+import { deleteCover } from '@/lib/redis-covers';
+import { getRedisPostBySlug } from '@/lib/redis-posts';
 import type { Post } from '@/types/blog';
-import { revalidatePath } from 'next/cache';
-import { isRedirectError } from 'next/dist/client/components/redirect-error';
-import { redirect } from 'next/navigation';
 
 /**
  * Server Action to save (create or update) a blog post in Upstash Redis.
@@ -45,18 +51,47 @@ export async function savePostAction(
   });
 
   if (!validation.success) {
-    const formattedErrors = validation.error.flatten().fieldErrors;
+    const fieldErrors = validation.error.flatten().fieldErrors;
+    const errors: Record<string, string[]> = {};
+    for (const [key, val] of Object.entries(fieldErrors)) {
+      if (val) {
+        errors[key] = val;
+      }
+    }
     return {
       success: false,
       message: adminBlogLabels.errors.generalSaveError,
-      errors: formattedErrors,
+      errors,
       values: rawValues,
     };
   }
 
   try {
     const validated = validation.data;
-    const existingPost = await getPostForAdminBySlug(validated.slug);
+    const cleanSlug = normalizeSlug(validated.slug);
+
+    // Validate MDX compilation before touching Redis
+    const mdxCheck = await validateMdxCompilation(validated.content);
+    if (!mdxCheck.valid) {
+      const excerpt = mdxCheck.sourceExcerpt
+        ? ` ("${mdxCheck.sourceExcerpt}")`
+        : '';
+      const errorMsg =
+        mdxCheck.line && mdxCheck.column
+          ? `MDX compilation error at line ${mdxCheck.line}, column ${mdxCheck.column}: ${mdxCheck.reason || mdxCheck.error}${excerpt}`
+          : `MDX compilation error: ${mdxCheck.reason || mdxCheck.error || 'Could not parse expression with acorn'}${excerpt}`;
+      return {
+        success: false,
+        message: errorMsg,
+        errors: {
+          content: [errorMsg],
+        },
+        values: rawValues,
+      };
+    }
+
+    const preprocessedContent = preprocessMdxContent(validated.content);
+    const existingPost = await getPostForAdminBySlug(cleanSlug);
 
     const nowIso = new Date().toISOString();
     // Keep original publish date when editing an existing slug; otherwise use nowIso
@@ -65,13 +100,31 @@ export async function savePostAction(
       : nowIso;
     const updatedDate = nowIso;
 
+    // Cleanup old cover image if it was an internal uploaded Redis cover and has changed
+    if (
+      existingPost?.coverImage &&
+      existingPost.coverImage !== validated.coverImage
+    ) {
+      const oldCoverId = extractCoverId(existingPost.coverImage);
+      if (oldCoverId) {
+        try {
+          await deleteCover(oldCoverId);
+        } catch (cleanupError) {
+          console.warn(
+            `[actions] Failed to clean up old cover "${oldCoverId}":`,
+            cleanupError,
+          );
+        }
+      }
+    }
+
     const post: Post = {
-      slug: validated.slug,
+      slug: cleanSlug,
       title: validated.title,
       description: validated.description,
-      content: validated.content,
-      coverImage: validated.coverImage,
-      image: validated.coverImage,
+      content: preprocessedContent,
+      coverImage: validated.coverImage || undefined,
+      image: validated.coverImage || undefined,
       category: validated.category,
       youtubeId: extractYouTubeVideoId(validated.youtubeUrl) || undefined,
       tags: validated.tags,
@@ -85,13 +138,20 @@ export async function savePostAction(
 
     // Revalidate all affected cache tags and routes
     revalidatePath('/blog');
+    revalidatePath('/blog/[slug]', 'page');
     revalidatePath(`/blog/${post.slug}`);
     revalidatePath('/sitemap.xml');
     revalidatePath('/robots.txt');
     revalidatePath('/');
     revalidatePath('/admin');
   } catch (error) {
-    if (isRedirectError(error)) {
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      'digest' in error &&
+      typeof (error as { digest: string }).digest === 'string' &&
+      (error as { digest: string }).digest.startsWith('NEXT_REDIRECT')
+    ) {
       throw error;
     }
     console.error('[actions] Error saving post:', error);
@@ -107,6 +167,7 @@ export async function savePostAction(
 
   // Redirect to admin dashboard on success
   redirect('/admin');
+  return { success: true };
 }
 
 /**
@@ -119,16 +180,53 @@ export async function deletePostAction(
   // First line requirement: enforce admin session
   await requireAdmin({ redirectOnFail: false });
 
-  if (!slug || typeof slug !== 'string') {
+  const cleanSlug = normalizeSlug(slug);
+  if (!cleanSlug) {
     return { success: false, error: 'A valid slug string is required.' };
   }
 
   try {
-    const deleted = await deletePost(slug);
+    const [redisPost, filePost] = await Promise.all([
+      getRedisPostBySlug(cleanSlug),
+      Promise.resolve(getFileBlogPostBySlug(cleanSlug)),
+    ]);
+
+    if (!redisPost && filePost) {
+      return {
+        success: false,
+        error:
+          'Local file-based posts (src/data/blog/) are version-controlled in the repository and cannot be deleted via the admin dashboard. Remove the MDX file from the repository to delete this article.',
+      };
+    }
+
+    if (!redisPost && !filePost) {
+      return {
+        success: false,
+        error: `Post "${cleanSlug}" was not found.`,
+      };
+    }
+
+    const deleted = await deletePost(cleanSlug);
+
+    // Clean up stored cover image in Redis if this post was using an uploaded cover
+    if (deleted && redisPost?.coverImage) {
+      const coverId = extractCoverId(redisPost.coverImage);
+      if (coverId) {
+        try {
+          await deleteCover(coverId);
+        } catch (coverCleanupError) {
+          console.warn(
+            `[actions] Failed to clean up cover "${coverId}" during post deletion:`,
+            coverCleanupError,
+          );
+        }
+      }
+    }
 
     // Revalidate paths
     revalidatePath('/blog');
-    revalidatePath(`/blog/${slug}`);
+    revalidatePath('/blog/[slug]', 'page');
+    revalidatePath(`/blog/${cleanSlug}`);
     revalidatePath('/sitemap.xml');
     revalidatePath('/robots.txt');
     revalidatePath('/');
@@ -145,4 +243,20 @@ export async function deletePostAction(
           : adminBlogLabels.errors.generalDeleteError,
     };
   }
+}
+
+/**
+ * Server Action for real-time live preview MDX syntax validation in PostForm.
+ * First line verifies admin authorization via requireAdmin().
+ */
+export async function validateMdxAction(content: string): Promise<{
+  valid: boolean;
+  error?: string;
+  reason?: string;
+  line?: number;
+  column?: number;
+  sourceExcerpt?: string;
+}> {
+  await requireAdmin({ redirectOnFail: false });
+  return validateMdxCompilation(content);
 }

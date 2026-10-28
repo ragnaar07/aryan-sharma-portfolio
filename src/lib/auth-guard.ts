@@ -1,7 +1,8 @@
-import { auth } from '@/auth';
 import type { Session } from 'next-auth';
 import { redirect } from 'next/navigation';
 import 'server-only';
+
+import { auth } from '@/auth';
 
 export interface RequireAdminOptions {
   /**

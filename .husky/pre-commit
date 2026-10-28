@@ -1,6 +1,2 @@
 #!/usr/bin/env sh
-if command -v bun >/dev/null 2>&1; then
-  bunx lint-staged
-else
-  npx lint-staged
-fi
+npx lint-staged
