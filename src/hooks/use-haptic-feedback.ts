@@ -4,6 +4,34 @@ import { useCallback } from 'react';
 
 type HapticFeedbackType = 'light' | 'medium' | 'heavy' | 'selection' | 'impact';
 
+// Module-level singleton AudioContext to prevent leaking hardware audio contexts on iOS/WebKit
+let sharedAudioContext: AudioContext | null = null;
+
+function getSharedAudioContext(): AudioContext | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const AudioContextClass =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
+
+    if (!AudioContextClass) return null;
+
+    if (!sharedAudioContext || sharedAudioContext.state === 'closed') {
+      sharedAudioContext = new AudioContextClass();
+    }
+
+    if (sharedAudioContext.state === 'suspended') {
+      sharedAudioContext.resume().catch(() => {});
+    }
+
+    return sharedAudioContext;
+  } catch {
+    return null;
+  }
+}
+
 export const useHapticFeedback = () => {
   const triggerHaptic = useCallback((type: HapticFeedbackType = 'light') => {
     // Check if we're in a browser environment and if haptic feedback is supported
@@ -45,30 +73,37 @@ export const useHapticFeedback = () => {
         ).requestPermission === 'function'
       ) {
         // iOS haptic feedback through AudioContext (workaround)
-        const AudioContextClass =
-          window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext })
-            .webkitAudioContext;
-        const audioContext = new AudioContextClass();
-        const oscillator = audioContext.createOscillator();
-        const gainNode = audioContext.createGain();
+        const audioContext = getSharedAudioContext();
+        if (audioContext) {
+          const oscillator = audioContext.createOscillator();
+          const gainNode = audioContext.createGain();
 
-        oscillator.connect(gainNode);
-        gainNode.connect(audioContext.destination);
+          oscillator.connect(gainNode);
+          gainNode.connect(audioContext.destination);
 
-        oscillator.frequency.setValueAtTime(0, audioContext.currentTime);
-        gainNode.gain.setValueAtTime(0, audioContext.currentTime);
-        gainNode.gain.linearRampToValueAtTime(
-          0.01,
-          audioContext.currentTime + 0.01,
-        );
-        gainNode.gain.linearRampToValueAtTime(
-          0,
-          audioContext.currentTime + 0.02,
-        );
+          oscillator.frequency.setValueAtTime(0, audioContext.currentTime);
+          gainNode.gain.setValueAtTime(0, audioContext.currentTime);
+          gainNode.gain.linearRampToValueAtTime(
+            0.01,
+            audioContext.currentTime + 0.01,
+          );
+          gainNode.gain.linearRampToValueAtTime(
+            0,
+            audioContext.currentTime + 0.02,
+          );
 
-        oscillator.start(audioContext.currentTime);
-        oscillator.stop(audioContext.currentTime + 0.02);
+          oscillator.onended = () => {
+            try {
+              oscillator.disconnect();
+              gainNode.disconnect();
+            } catch {
+              // Ignore disconnect errors if already disconnected
+            }
+          };
+
+          oscillator.start(audioContext.currentTime);
+          oscillator.stop(audioContext.currentTime + 0.02);
+        }
       }
     } catch (error) {
       // Silently fail if haptic feedback is not supported

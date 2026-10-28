@@ -1,7 +1,8 @@
-import { journeyItems } from '@/config/Journey';
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'next-view-transitions';
 import React from 'react';
+
+import { journeyItems } from '@/config/Journey';
 
 import Container from '../common/Container';
 import SectionHeading from '../common/SectionHeading';

@@ -1,9 +1,91 @@
+import { z } from 'zod';
+
 import {
   BLOG_CATEGORIES,
   BLOG_VALIDATION,
   adminBlogLabels,
 } from '@/config/BlogAdmin';
-import { z } from 'zod';
+
+/**
+ * Universal slug normalizer: ensures identical slug behavior across writes and reads.
+ * Strips accents, lowers case, trims leading/trailing slashes and punctuation, collapses hyphens.
+ */
+export function normalizeSlug(input: unknown): string {
+  if (typeof input !== 'string' && typeof input !== 'number') {
+    return '';
+  }
+  let s = String(input).trim();
+  try {
+    s = decodeURIComponent(s);
+  } catch {
+    // Continue with raw string on malformed URI components
+  }
+  return s
+    .toLowerCase()
+    .trim()
+    .replace(/^[/\\]+|[/\\]+$/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Extracts a cover image UUID from an internal cover URL.
+ * Matches: /api/blog/cover/<uuid>
+ */
+export function extractCoverId(url?: string | null): string | null {
+  if (!url || typeof url !== 'string') {
+    return null;
+  }
+  const match = url
+    .trim()
+    .match(
+      /^\/api\/blog\/cover\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/i,
+    );
+  return match ? match[1].toLowerCase() : null;
+}
+
+/**
+ * Validates a cover image value.
+ * Accepts:
+ * - Empty string or null/undefined
+ * - External HTTPS URL (https://...)
+ * - Static path starting with "/" (excluding /api/)
+ * - Internal uploaded cover URL (/api/blog/cover/<uuid>)
+ * Strictly rejects: javascript:, data:, http:, and other schemes.
+ */
+export function isValidCoverImage(val?: string | null): boolean {
+  if (!val || !val.trim()) {
+    return true; // Empty is permitted; frontend/schema can supply fallback
+  }
+
+  const trimmed = val.trim();
+
+  // Reject dangerous pseudo-protocols or unencrypted schemes
+  if (/^(javascript|data|vbscript|file|blob|http):/i.test(trimmed)) {
+    return false;
+  }
+
+  // Allow external HTTPS URLs
+  if (/^https:\/\/[^\s$.?#].[^\s]*$/i.test(trimmed)) {
+    return true;
+  }
+
+  // Allow uploaded cover URL pattern: /api/blog/cover/<uuid>
+  if (
+    /^\/api\/blog\/cover\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      trimmed,
+    )
+  ) {
+    return true;
+  }
+
+  // Allow static paths like /blog/... or /assets/... (not starting with /api/)
+  if (/^\/(?!api\/)[^\s]+$/i.test(trimmed)) {
+    return true;
+  }
+
+  return false;
+}
 
 /**
  * Extracts an 11-character YouTube video ID from a URL or raw ID string.
@@ -63,18 +145,24 @@ export function extractYouTubeVideoId(input?: string | null): string | null {
 
 export const postFormSchema = z.object({
   title: z
-    .string({ required_error: adminBlogLabels.errors.titleRequired })
+    .string()
     .trim()
     .min(BLOG_VALIDATION.title.min, adminBlogLabels.errors.titleRequired)
     .max(BLOG_VALIDATION.title.max, adminBlogLabels.errors.titleRequired),
   slug: z
-    .string({ required_error: adminBlogLabels.errors.slugInvalid })
-    .trim()
-    .min(BLOG_VALIDATION.slug.min, adminBlogLabels.errors.slugInvalid)
-    .max(BLOG_VALIDATION.slug.max, adminBlogLabels.errors.slugInvalid)
-    .regex(BLOG_VALIDATION.slug.regex, adminBlogLabels.errors.slugInvalid),
+    .string()
+    .transform((val) => normalizeSlug(val))
+    .refine(
+      (val) =>
+        val.length >= BLOG_VALIDATION.slug.min &&
+        val.length <= BLOG_VALIDATION.slug.max &&
+        BLOG_VALIDATION.slug.regex.test(val),
+      {
+        message: adminBlogLabels.errors.slugInvalid,
+      },
+    ),
   description: z
-    .string({ required_error: adminBlogLabels.errors.descriptionRequired })
+    .string()
     .trim()
     .min(
       BLOG_VALIDATION.description.min,
@@ -84,15 +172,17 @@ export const postFormSchema = z.object({
       BLOG_VALIDATION.description.max,
       adminBlogLabels.errors.descriptionRequired,
     ),
-  category: z.enum(BLOG_CATEGORIES, {
-    errorMap: () => ({ message: adminBlogLabels.errors.categoryInvalid }),
-  }),
+  category: z.enum(BLOG_CATEGORIES),
   coverImage: z
-    .string({ required_error: adminBlogLabels.errors.coverImageRequired })
-    .trim()
-    .min(1, adminBlogLabels.errors.coverImageRequired),
+    .string()
+    .optional()
+    .nullable()
+    .transform((val) => (val ? val.trim() : ''))
+    .refine(isValidCoverImage, {
+      message: adminBlogLabels.errors.coverImageInvalid,
+    }),
   tags: z
-    .string({ required_error: adminBlogLabels.errors.tagsRequired })
+    .string()
     .transform((val) =>
       val
         .split(',')
@@ -117,7 +207,7 @@ export const postFormSchema = z.object({
       },
     ),
   content: z
-    .string({ required_error: adminBlogLabels.errors.contentRequired })
+    .string()
     .trim()
     .min(1, adminBlogLabels.errors.contentRequired)
     .max(

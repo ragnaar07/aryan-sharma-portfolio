@@ -1,6 +1,7 @@
-import { about, mySkills } from '@/config/About';
 import Image from 'next/image';
 import React from 'react';
+
+import { about, mySkills } from '@/config/About';
 
 import Container from '../common/Container';
 import SectionHeading from '../common/SectionHeading';

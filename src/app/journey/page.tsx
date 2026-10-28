@@ -1,11 +1,12 @@
+import { Metadata } from 'next';
+import { MDXRemote } from 'next-mdx-remote/rsc';
+import React from 'react';
+
 import { BlogComponents } from '@/components/blog/BlogComponents';
 import Container from '@/components/common/Container';
 import { Separator } from '@/components/ui/separator';
 import { generateMetadata as getMetadata } from '@/config/Meta';
 import { getJourneyContent } from '@/lib/journey';
-import { Metadata } from 'next';
-import { MDXRemote } from 'next-mdx-remote/rsc';
-import React from 'react';
 
 export const metadata: Metadata = {
   ...getMetadata('/journey'),

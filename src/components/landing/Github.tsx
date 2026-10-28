@@ -1,10 +1,11 @@
 'use client';
 
-import { githubConfig } from '@/config/Github';
 import { useTheme } from 'next-themes';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+
+import { githubConfig } from '@/config/Github';
 
 import Container from '../common/Container';
 import GithubIcon from '../svgs/Github';
@@ -45,7 +46,7 @@ export default function Github() {
   const [totalContributions, setTotalContributions] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
 
   useEffect(() => {
     async function fetchData() {
@@ -166,7 +167,7 @@ export default function Github() {
                   blockSize={12}
                   blockMargin={4}
                   fontSize={githubConfig.fontSize}
-                  colorScheme={theme === 'dark' ? 'dark' : 'light'}
+                  colorScheme={resolvedTheme === 'dark' ? 'dark' : 'light'}
                   maxLevel={githubConfig.maxLevel}
                   hideTotalCount={true}
                   hideColorLegend={false}

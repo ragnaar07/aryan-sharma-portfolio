@@ -1,9 +1,10 @@
-import { heroConfig, skillComponents, socialLinks } from '@/config/Hero';
-import { parseTemplate } from '@/lib/hero';
-import { cn } from '@/lib/utils';
 import { Link } from 'next-view-transitions';
 import Image from 'next/image';
 import React from 'react';
+
+import { heroConfig, skillComponents, socialLinks } from '@/config/Hero';
+import { parseTemplate } from '@/lib/hero';
+import { cn } from '@/lib/utils';
 
 import Container from '../common/Container';
 import Skill from '../common/Skill';
@@ -18,7 +19,16 @@ const buttonIcons = {
 };
 
 export default function Hero() {
-  const { name, title, avatar, skills, description, buttons } = heroConfig;
+  const {
+    name,
+    title,
+    avatar,
+    bannerImage,
+    bannerAlt,
+    skills,
+    description,
+    buttons,
+  } = heroConfig;
 
   const renderDescription = () => {
     const parts = parseTemplate(description.template, skills);
@@ -34,16 +44,12 @@ export default function Hero() {
         );
       } else if (part.type === 'bold' && 'text' in part) {
         return (
-          <b key={part.key} className="text-primary whitespace-pre-wrap">
+          <b key={part.key} className="text-primary font-semibold">
             {part.text}
           </b>
         );
       } else if (part.type === 'text' && 'text' in part) {
-        return (
-          <span key={part.key} className="whitespace-pre-wrap">
-            {part.text}
-          </span>
-        );
+        return <span key={part.key}>{part.text}</span>;
       }
       return null;
     });
@@ -51,14 +57,17 @@ export default function Hero() {
 
   return (
     <Container className="mx-auto max-w-7xl">
-      {/* Image */}
-      <Image
-        src={avatar}
-        alt="hero"
-        width={100}
-        height={100}
-        className="size-24 rounded-full object-cover"
-      />
+      {/* Hero Panoramic Banner */}
+      <div className="relative h-48 w-full overflow-hidden rounded-2xl border border-neutral-200/80 bg-neutral-100 shadow-sm sm:h-64 md:h-72 lg:h-80 dark:border-neutral-800/80 dark:bg-neutral-900">
+        <Image
+          src={bannerImage || avatar}
+          alt={bannerAlt || 'Hero banner'}
+          fill
+          priority
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 90vw, 1200px"
+          className="object-cover object-center"
+        />
+      </div>
 
       {/* Text Area */}
       <div className="mt-8 flex flex-col gap-2">
@@ -66,9 +75,9 @@ export default function Hero() {
           Hi, I&apos;m {name} — <span className="text-secondary">{title}</span>
         </h1>
 
-        <div className="mt-4 flex flex-wrap items-center gap-x-1.5 gap-y-2 text-base whitespace-pre-wrap text-neutral-500 md:text-lg">
+        <p className="mt-4 text-base leading-relaxed text-neutral-500 md:text-lg">
           {renderDescription()}
-        </div>
+        </p>
       </div>
 
       {/* Buttons */}
@@ -79,14 +88,17 @@ export default function Hero() {
           return (
             <Button
               key={index}
+              asChild
               variant={button.variant as 'outline' | 'default'}
               className={cn(
                 button.variant === 'outline' && 'inset-shadow-indigo-500',
                 button.variant === 'default' && 'inset-shadow-indigo-500',
               )}
             >
-              {IconComponent && <IconComponent />}
-              <Link href={button.href}>{button.text}</Link>
+              <Link href={button.href}>
+                {IconComponent && <IconComponent />}
+                <span>{button.text}</span>
+              </Link>
             </Button>
           );
         })}
@@ -100,6 +112,7 @@ export default function Hero() {
               <Link
                 href={link.href}
                 key={link.name}
+                aria-label={link.name}
                 className="text-secondary flex items-center gap-2"
               >
                 <span className="size-6">{link.icon}</span>

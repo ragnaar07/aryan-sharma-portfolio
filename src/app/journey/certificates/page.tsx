@@ -1,12 +1,15 @@
-import CertificatesGallery from '@/components/CertificatesGallery';
-import Container from '@/components/common/Container';
-import { Separator } from '@/components/ui/separator';
-import { certificates as configuredCertificates } from '@/config/Achievements';
-import { generateMetadata as getMetadata } from '@/config/Meta';
 import fs from 'fs';
 import { Metadata } from 'next';
 import path from 'path';
 import React from 'react';
+
+import CertificatesGallery, {
+  type Certificate,
+} from '@/components/CertificatesGallery';
+import Container from '@/components/common/Container';
+import { Separator } from '@/components/ui/separator';
+import { certificates as configuredCertificates } from '@/config/Achievements';
+import { generateMetadata as getMetadata } from '@/config/Meta';
 
 export const metadata: Metadata = {
   ...getMetadata('/journey/certificates'),
@@ -16,12 +19,7 @@ export const metadata: Metadata = {
 export default function CertificatesPage() {
   // Server-side: auto-discover certificate images placed under public/certificates
   const certDir = path.join(process.cwd(), 'public', 'certificates');
-  let discovered: {
-    file: string;
-    title?: string;
-    issuer?: string;
-    date?: string;
-  }[] = [];
+  let discovered: Certificate[] = [];
   try {
     if (fs.existsSync(certDir)) {
       const files = fs.readdirSync(certDir);
@@ -40,23 +38,17 @@ export default function CertificatesPage() {
   }
 
   // Merge configured certificates with discovered ones (configured entries take precedence)
-  const configured = Array.isArray(configuredCertificates)
-    ? configuredCertificates
+  const configured: Certificate[] = Array.isArray(configuredCertificates)
+    ? (configuredCertificates as Certificate[])
     : [];
   // Build map to avoid duplicates by file path
-  const map = new Map<
-    string,
-    { file: string; title?: string; issuer?: string; date?: string }
-  >();
-  configured.forEach(
-    (c: { file: string; title?: string; issuer?: string; date?: string }) =>
-      map.set(c.file, c),
-  );
+  const map = new Map<string, Certificate>();
+  configured.forEach((c) => map.set(c.file, c));
   discovered.forEach((d) => {
     if (!map.has(d.file)) map.set(d.file, d);
   });
 
-  const allCertificates = Array.from(map.values());
+  const allCertificates: Certificate[] = Array.from(map.values());
 
   return (
     <Container className="py-16">

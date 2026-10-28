@@ -1,5 +1,9 @@
 'use client';
 
+import { FilterX } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
 import { BlogList } from '@/components/blog/BlogList';
 import Container from '@/components/common/Container';
 import { Badge } from '@/components/ui/badge';
@@ -7,9 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useHapticFeedback } from '@/hooks/use-haptic-feedback';
 import { BlogPostPreview } from '@/types/blog';
-import { FilterX } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
 
 interface BlogPageClientProps {
   initialPosts: BlogPostPreview[];

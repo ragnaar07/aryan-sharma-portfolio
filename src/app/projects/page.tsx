@@ -1,9 +1,10 @@
+import { Metadata } from 'next';
+
 import Container from '@/components/common/Container';
 import { ProjectList } from '@/components/projects/ProjectList';
 import { Separator } from '@/components/ui/separator';
 import { generateMetadata as getMetadata } from '@/config/Meta';
 import { projects } from '@/config/Projects';
-import { Metadata } from 'next';
 
 export const metadata: Metadata = {
   ...getMetadata('/projects'),

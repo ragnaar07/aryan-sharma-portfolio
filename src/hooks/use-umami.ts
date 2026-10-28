@@ -1,7 +1,8 @@
 'use client';
 
-import type { AnalyticsEvent } from '@/types/analytics';
 import { useCallback } from 'react';
+
+import type { AnalyticsEvent } from '@/types/analytics';
 
 declare global {
   interface Window {

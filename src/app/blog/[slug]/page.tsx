@@ -1,3 +1,7 @@
+import { Metadata } from 'next';
+import { Link } from 'next-view-transitions';
+import { notFound } from 'next/navigation';
+
 import { BlogContent } from '@/components/blog/BlogContent';
 import { BlogList } from '@/components/blog/BlogList';
 import { PostNavigation } from '@/components/blog/PostNavigation';
@@ -11,14 +15,14 @@ import { getSiteUrl, siteConfig } from '@/config/Meta';
 import {
   extractHeadings,
   getBlogPostBySlug,
+  getBlogPostSlugs,
   getPublishedBlogPostsAsync,
   getRelatedPosts,
+  normalizeSlug,
 } from '@/lib/blog';
-import { Metadata } from 'next';
-import { Link } from 'next-view-transitions';
-import { notFound } from 'next/navigation';
 
 export const dynamicParams = true;
+export const revalidate = 60;
 
 interface BlogPostPageProps {
   params: Promise<{
@@ -26,12 +30,12 @@ interface BlogPostPageProps {
   }>;
 }
 
-// Generate static paths for all published blog posts
+// Generate static paths for version-controlled blog posts; dynamic Redis posts are rendered on-demand
 export async function generateStaticParams() {
-  const posts = await getPublishedBlogPostsAsync();
+  const slugs = getBlogPostSlugs();
 
-  return posts.map((post) => ({
-    slug: post.slug,
+  return slugs.map((slug) => ({
+    slug: normalizeSlug(slug),
   }));
 }
 
@@ -39,95 +43,139 @@ export async function generateStaticParams() {
 export async function generateMetadata({
   params,
 }: BlogPostPageProps): Promise<Metadata> {
-  const { slug } = await params;
-  const post = await getBlogPostBySlug(slug);
+  try {
+    const { slug } = await params;
+    const normalizedSlug = normalizeSlug(slug);
+    const post = await getBlogPostBySlug(normalizedSlug);
 
-  if (!post || !post.frontmatter.isPublished) {
-    return {
-      title: 'Post Not Found',
-      robots: {
-        index: false,
-        follow: false,
-      },
-    };
-  }
-
-  const siteUrl = getSiteUrl();
-  const canonicalUrl = `${siteUrl}/blog/${slug}`;
-  const {
-    title,
-    description,
-    image,
-    coverImage,
-    tags,
-    category,
-    date,
-    updatedDate,
-  } = post.frontmatter;
-
-  const rawImage = coverImage || image || '/assets/me.png';
-  const ogImageUrl = rawImage.startsWith('http')
-    ? rawImage
-    : `${siteUrl}${rawImage.startsWith('/') ? '' : '/'}${rawImage}`;
-
-  const publishedTime = date ? new Date(date).toISOString() : undefined;
-  const modifiedTime = updatedDate
-    ? new Date(updatedDate).toISOString()
-    : publishedTime;
-
-  return {
-    metadataBase: new URL(siteUrl),
-    title: `${title} | Aryan Sharma`,
-    description,
-    keywords: tags && tags.length > 0 ? tags.join(', ') : category,
-    authors: [{ name: siteConfig.author.name }],
-    creator: siteConfig.author.name,
-    alternates: {
-      canonical: canonicalUrl,
-    },
-    openGraph: {
-      title,
-      description,
-      url: canonicalUrl,
-      siteName: siteConfig.title,
-      type: 'article',
-      publishedTime,
-      modifiedTime,
-      authors: [siteConfig.author.name],
-      tags: tags || [],
-      images: [
-        {
-          url: ogImageUrl,
-          width: 1200,
-          height: 630,
-          alt: title,
+    if (!post || !post.frontmatter.isPublished) {
+      return {
+        title: 'Post Not Found',
+        robots: {
+          index: false,
+          follow: false,
         },
-      ],
-    },
-    twitter: {
-      card: 'summary_large_image',
+      };
+    }
+
+    const siteUrl = getSiteUrl();
+    const canonicalUrl = `${siteUrl}/blog/${normalizedSlug}`;
+    const {
       title,
       description,
-      creator: siteConfig.author.twitter || undefined,
-      images: [ogImageUrl],
-    },
-    robots: {
-      index: true,
-      follow: true,
-      googleBot: {
+      image,
+      coverImage,
+      tags = [],
+      category = 'Engineering',
+      date,
+      updatedDate,
+    } = post.frontmatter;
+
+    const rawImage = coverImage || image || '/assets/me.png';
+    let ogImageUrl = '/assets/me.png';
+    try {
+      if (rawImage.startsWith('http://') || rawImage.startsWith('https://')) {
+        ogImageUrl = rawImage;
+      } else {
+        const cleanPath = rawImage.startsWith('/') ? rawImage : `/${rawImage}`;
+        ogImageUrl = new URL(cleanPath, siteUrl).toString();
+      }
+    } catch {
+      ogImageUrl = `${siteUrl}/assets/me.png`;
+    }
+
+    let publishedTime: string | undefined;
+    try {
+      if (date) {
+        const d = new Date(date);
+        if (!Number.isNaN(d.getTime())) {
+          publishedTime = d.toISOString();
+        }
+      }
+    } catch {
+      publishedTime = undefined;
+    }
+
+    let modifiedTime: string | undefined = publishedTime;
+    try {
+      if (updatedDate) {
+        const d = new Date(updatedDate);
+        if (!Number.isNaN(d.getTime())) {
+          modifiedTime = d.toISOString();
+        }
+      }
+    } catch {
+      modifiedTime = publishedTime;
+    }
+
+    let baseMetaUrl: URL;
+    try {
+      baseMetaUrl = new URL(siteUrl);
+    } catch {
+      baseMetaUrl = new URL('https://aryansharma.dev');
+    }
+
+    return {
+      metadataBase: baseMetaUrl,
+      title: `${title} | Aryan Sharma`,
+      description,
+      keywords: tags.length > 0 ? tags.join(', ') : category,
+      authors: [{ name: siteConfig.author.name }],
+      creator: siteConfig.author.name,
+      alternates: {
+        canonical: canonicalUrl,
+      },
+      openGraph: {
+        title,
+        description,
+        url: canonicalUrl,
+        siteName: siteConfig.title,
+        type: 'article',
+        publishedTime,
+        modifiedTime,
+        authors: [siteConfig.author.name],
+        tags,
+        images: [
+          {
+            url: ogImageUrl,
+            width: 1200,
+            height: 630,
+            alt: title,
+          },
+        ],
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title,
+        description,
+        creator: siteConfig.author.twitter || undefined,
+        images: [ogImageUrl],
+      },
+      robots: {
         index: true,
         follow: true,
-        'max-video-preview': -1,
-        'max-image-preview': 'large',
-        'max-snippet': -1,
+        googleBot: {
+          index: true,
+          follow: true,
+          'max-video-preview': -1,
+          'max-image-preview': 'large',
+          'max-snippet': -1,
+        },
       },
-    },
-  };
+    };
+  } catch (error) {
+    console.error('[blog/[slug]] Error generating metadata:', error);
+    return {
+      title: 'Article | Aryan Sharma',
+      description: siteConfig.description,
+    };
+  }
 }
 
 export default async function BlogPostPage({ params }: BlogPostPageProps) {
   const { slug } = await params;
-  const post = await getBlogPostBySlug(slug);
+  const normalizedSlug = normalizeSlug(slug);
+  const post = await getBlogPostBySlug(normalizedSlug);
 
   // Unpublished or missing slugs must return not-found
   if (!post || !post.frontmatter.isPublished) {
@@ -136,12 +184,14 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
   const [allPosts, relatedPosts] = await Promise.all([
     getPublishedBlogPostsAsync(),
-    getRelatedPosts(slug, 3),
+    getRelatedPosts(normalizedSlug, 3),
   ]);
 
   // Compute Older and Newer navigation links
   // (Posts are sorted newest first, so currentIndex - 1 is newer, currentIndex + 1 is older)
-  const currentIndex = allPosts.findIndex((p) => p.slug === slug);
+  const currentIndex = allPosts.findIndex(
+    (p) => normalizeSlug(p.slug) === normalizedSlug,
+  );
   const newerPost = currentIndex > 0 ? allPosts[currentIndex - 1] : null;
   const olderPost =
     currentIndex !== -1 && currentIndex < allPosts.length - 1
@@ -173,15 +223,14 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   frontmatter={post.frontmatter}
                   content={post.content}
                   headings={headings}
+                  slug={normalizedSlug}
                 />
                 <PostNavigation olderPost={olderPost} newerPost={newerPost} />
               </div>
 
               {/* Desktop Sticky Sidebar */}
-              <aside className="hidden lg:block">
-                <div className="sticky top-28">
-                  <DesktopTableOfContents headings={headings} />
-                </div>
+              <aside className="hidden lg:sticky lg:top-28 lg:block lg:self-start">
+                <DesktopTableOfContents headings={headings} />
               </aside>
             </div>
           ) : (
@@ -190,6 +239,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 frontmatter={post.frontmatter}
                 content={post.content}
                 headings={headings}
+                slug={normalizedSlug}
               />
               <PostNavigation olderPost={olderPost} newerPost={newerPost} />
             </div>

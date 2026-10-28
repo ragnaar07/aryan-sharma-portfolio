@@ -1,13 +1,15 @@
+import { Metadata } from 'next';
+import { Suspense } from 'react';
+
 import Container from '@/components/common/Container';
 import { Separator } from '@/components/ui/separator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { generateMetadata as getMetadata } from '@/config/Meta';
 import { getAllTagsAsync, getPublishedBlogPostsAsync } from '@/lib/blog';
-import { Metadata } from 'next';
-import { Robots } from 'next/dist/lib/metadata/types/metadata-types';
-import { Suspense } from 'react';
 
 import { BlogPageClient } from './BlogPageClient';
+
+export const revalidate = 60;
 
 export const generateMetadata = (): Metadata => {
   const metadata = getMetadata('/blog');
@@ -22,7 +24,7 @@ export const generateMetadata = (): Metadata => {
         'max-video-preview': -1,
         'max-image-preview': 'large',
         'max-snippet': -1,
-      } as Robots['googleBot'],
+      },
     },
   };
 };

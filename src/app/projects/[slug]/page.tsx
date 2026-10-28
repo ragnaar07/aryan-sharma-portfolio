@@ -1,3 +1,7 @@
+import { Metadata } from 'next';
+import { Link } from 'next-view-transitions';
+import { notFound } from 'next/navigation';
+
 import Container from '@/components/common/Container';
 import { ProjectContent } from '@/components/projects/ProjectContent';
 import { ProjectNavigation } from '@/components/projects/ProjectNavigation';
@@ -11,9 +15,6 @@ import {
   getPublishedProjectCaseStudies,
   getRelatedProjectCaseStudies,
 } from '@/lib/project';
-import { Metadata } from 'next';
-import { Link } from 'next-view-transitions';
-import { notFound } from 'next/navigation';
 
 interface ProjectCaseStudyPageProps {
   params: Promise<{

@@ -1,16 +1,25 @@
-import Bun from '@/components/technologies/Bun';
-import JavaScript from '@/components/technologies/JavaScript';
-import MongoDB from '@/components/technologies/MongoDB';
-// Import technology components
-import NextJs from '@/components/technologies/NextJs';
-import NodeJs from '@/components/technologies/NodeJs';
-import PostgreSQL from '@/components/technologies/PostgreSQL';
-import Prisma from '@/components/technologies/Prisma';
-import ReactIcon from '@/components/technologies/ReactIcon';
-import TypeScript from '@/components/technologies/TypeScript';
-import { Badge } from '@/components/ui/badge';
 import Image from 'next/image';
 import React from 'react';
+
+import AWS from '@/components/technologies/AWS';
+import Bun from '@/components/technologies/Bun';
+import CPlusPlus from '@/components/technologies/CPlusPlus';
+import FastAPI from '@/components/technologies/FastAPI';
+import JavaScript from '@/components/technologies/JavaScript';
+import Linux from '@/components/technologies/Linux';
+import MachineLearning from '@/components/technologies/MachineLearning';
+import MongoDB from '@/components/technologies/MongoDB';
+import NextJs from '@/components/technologies/NextJs';
+import NodeJs from '@/components/technologies/NodeJs';
+import OpenAI from '@/components/technologies/OpenAI';
+import PostgreSQL from '@/components/technologies/PostgreSQL';
+import Prisma from '@/components/technologies/Prisma';
+import Python from '@/components/technologies/Python';
+import ReactIcon from '@/components/technologies/ReactIcon';
+import STM32 from '@/components/technologies/STM32';
+import TailwindCss from '@/components/technologies/TailwindCss';
+import TypeScript from '@/components/technologies/TypeScript';
+import { Badge } from '@/components/ui/badge';
 
 import { CodeCopyButton } from '../blog/CodeCopyButton';
 
@@ -35,6 +44,27 @@ const TechnologyComponents: Record<string, React.ComponentType> = {
   prisma: Prisma,
   Bun: Bun,
   bun: Bun,
+  Python: Python,
+  python: Python,
+  'C++': CPlusPlus,
+  'c++': CPlusPlus,
+  cpp: CPlusPlus,
+  Linux: Linux,
+  linux: Linux,
+  FastAPI: FastAPI,
+  fastapi: FastAPI,
+  'Machine Learning': MachineLearning,
+  'machine learning': MachineLearning,
+  ml: MachineLearning,
+  OpenAI: OpenAI,
+  openai: OpenAI,
+  STM32: STM32,
+  stm32: STM32,
+  AWS: AWS,
+  aws: AWS,
+  TailwindCSS: TailwindCss,
+  'Tailwind CSS': TailwindCss,
+  tailwindcss: TailwindCss,
 };
 
 // Custom Technology component for displaying technology badges with icons
