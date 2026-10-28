@@ -129,14 +129,31 @@ export function preprocessMdxWithLineMap(rawContent: string): PreprocessResult {
     return placeholder(idx);
   });
 
-  // 3. Protect Block Math ($$...$$)
+  // 3. Normalize common LaTeX math syntaxes that CommonMark/remark-math do not parse
+  //    and then protect the normalized forms before escaping prose.
+  text = text.replace(/\\\[([\s\S]*?)\\\]/g, (_, math: string) => {
+    return `\n$$\n${math.trim()}\n$$\n`;
+  });
+
+  text = text.replace(/\\\(([\s\S]*?)\\\)/g, (_, math: string) => {
+    return `$${math.trim()}$`;
+  });
+
+  text = text.replace(
+    /(^|[^$])\\begin\{([a-zA-Z*]+)\}([\s\S]*?)\\end\{\2\}/g,
+    (_match, prefix: string, env: string, inner: string) => {
+      return `${prefix}\n$$\n\\begin{${env}}${inner}\\end{${env}}\n$$\n`;
+    },
+  );
+
+  // 4. Protect Block Math ($$...$$)
   text = text.replace(/(\$\$[\s\S]*?\$\$)/g, (match) => {
     const idx = tokens.length;
     tokens.push(match);
     return placeholder(idx);
   });
 
-  // 4. Protect Inline Math ($...$)
+  // 5. Protect Inline Math ($...$)
   // TeX rules: opening $ not preceded by \ and not followed by whitespace or $
   // closing $ not preceded by whitespace or \ and not followed by digit
   text = text.replace(
@@ -148,27 +165,27 @@ export function preprocessMdxWithLineMap(rawContent: string): PreprocessResult {
     },
   );
 
-  // 5. Convert HTML comments to MDX comments
+  // 6. Convert HTML comments to MDX comments
   text = text.replace(/<!--([\s\S]*?)-->/g, '{/*$1*/}');
 
-  // 6. Protect existing and newly converted MDX comments
+  // 7. Protect existing and newly converted MDX comments
   text = text.replace(/\{\/\*[\s\S]*?\*\/\}/g, (match) => {
     const idx = tokens.length;
     tokens.push(match);
     return placeholder(idx);
   });
 
-  // 7. Escape currency dollar signs in prose so remark-math does not mistake them for math
+  // 8. Escape currency dollar signs in prose so remark-math does not mistake them for math
   text = text.replace(/(?<!\\)\$(?=\d)/g, '\\$');
 
-  // 8. Escape stray "<" followed by a digit, space, "=" or end-of-line
+  // 9. Escape stray "<" followed by a digit, space, "=" or end-of-line
   text = text.replace(/(?<!\\)<(?=[\d\s=]|$)/g, '\\<');
 
-  // 9. Escape bare "{" and "}" in normal prose
+  // 10. Escape bare "{" and "}" in normal prose
   text = text.replace(/(?<!\\)\{/g, '\\{');
   text = text.replace(/(?<!\\)\}/g, '\\}');
 
-  // 10. Restore protected blocks in reverse order
+  // 11. Restore protected blocks in reverse order
   for (let i = tokens.length - 1; i >= 0; i--) {
     text = text.replace(placeholder(i), () => tokens[i]);
   }

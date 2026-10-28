@@ -171,10 +171,10 @@ export function getPortfolioFallback(message: string) {
         p.description.toLowerCase().includes('rag'),
     );
     return [
-      'My AI agent and RAG projects include:',
+      `${about.name}'s AI agent and RAG projects include:`,
       agentProjects.map(formatProject).join('\n'),
       '',
-      `You can also view my AI/ML CV on the [Resume page](/resume) or check my GitHub: [ragnaar07](${github}).`,
+      `Visitors can also view the AI/ML CV on the [Resume page](/resume) or check GitHub: [ragnaar07](${github}).`,
     ].join('\n');
   }
 
@@ -186,7 +186,7 @@ export function getPortfolioFallback(message: string) {
         p.description.toLowerCase().includes('prediction'),
     );
     return [
-      'My predictive maintenance and ML modeling work includes:',
+      `${about.name}'s predictive maintenance and ML modeling work includes:`,
       predictiveProjects.map(formatProject).join('\n'),
       '',
       'This project features an end-to-end ML pipeline with XGBoost, Random Forest, SHAP explainability, and Streamlit deployment.',
@@ -200,10 +200,10 @@ export function getPortfolioFallback(message: string) {
         p.title.toLowerCase().includes('rule engine'),
     );
     return [
-      'My concurrency and high-performance systems work includes:',
+      `${about.name}'s concurrency and high-performance systems work includes:`,
       concurrencyProjects.map(formatProject).join('\n'),
       '',
-      'In addition, at Alstom I engineered multi-stage C++ data pipelines and Oat++ REST middleware with move semantics and thread safety for safety-critical railway control data.',
+      `At Alstom, ${about.name} engineered multi-stage C++ data pipelines and Oat++ REST middleware with move semantics and thread safety for safety-critical railway control data.`,
     ].join('\n');
   }
 
@@ -224,10 +224,10 @@ export function getPortfolioFallback(message: string) {
     return [
       relevantProjects.length > 0
         ? 'Relevant projects:'
-        : 'My projects include:',
+        : `${about.name}'s projects include:`,
       selectedProjects.map(formatProject).join('\n'),
       '',
-      `You can also review my GitHub here: [ragnaar07](${github}).`,
+      `Visitors can also review the GitHub profile: [ragnaar07](${github}).`,
     ].join('\n');
   }
 
@@ -244,7 +244,7 @@ export function getPortfolioFallback(message: string) {
     ])
   ) {
     return [
-      `I'm **${about.name}**, an **${heroConfig.title}** based in **${contactConfig.location}**.`,
+      `This portfolio belongs to **${about.name}**, an **${heroConfig.title}** based in **${contactConfig.location}**.`,
       `- **Education**: ${about.education.degree}, ${about.education.institution} (${about.education.startYear} - ${about.education.graduationYear}).`,
       `- **Core skills**: ${skills}.`,
       `- **Experience**: Industrial Software at Alstom, plus SCADA and grid automation training at SJVN.`,
@@ -280,7 +280,7 @@ export function getPortfolioFallback(message: string) {
     ])
   ) {
     return [
-      `I bridge hardware, C++ systems, and machine learning. Core skills: **${skills}**.`,
+      `Aryan's work bridges hardware, C++ systems, and machine learning. Core skills: **${skills}**.`,
       '- **Low-Level & Systems**: C++ and Linux for modular middleware, safety-critical railway validation at Alstom, and system automation.',
       '- **Hardware & Electronics**: Analog circuit design, PCB layouts, semiconductor physics, Verilog, DSP, and microcontroller work with Arduino and STM32.',
       '- **Machine Learning & Python**: Deep learning, Transformers, predictive maintenance models, and Python data pipelines.',
@@ -303,7 +303,7 @@ export function getPortfolioFallback(message: string) {
     ])
   ) {
     return [
-      `I'm based in **${contactConfig.location}** and **${contactConfig.availability.toLowerCase()}**.`,
+      `Aryan is based in **${contactConfig.location}** and **${contactConfig.availability.toLowerCase()}**.`,
       `- **Email**: [${contactConfig.email}](${email})`,
       `- **LinkedIn**: [aryansh7](${linkedIn})`,
       `- **GitHub**: [ragnaar07](${github})`,
@@ -362,7 +362,7 @@ export function getPortfolioFallback(message: string) {
       })
       .join('\n\n');
 
-    return `My experience:\n\n${experienceList}`;
+    return `${about.name}'s experience:\n\n${experienceList}`;
   }
 
   if (
@@ -384,7 +384,7 @@ export function getPortfolioFallback(message: string) {
     ])
   ) {
     return [
-      `I graduated with a **${about.education.degree}** from **${about.education.institution}** (2021 - 2025).`,
+      `Aryan graduated with a **${about.education.degree}** from **${about.education.institution}** (2021 - 2025).`,
       `- **Schooling**: DAV Public School Lathiani (Class X: 90.8%, Class XII: 95.6%).`,
       `- **Awards**: Winner at the Children's Science Congress Fair.`,
     ].join('\n');
@@ -406,16 +406,35 @@ export function getPortfolioFallback(message: string) {
       'trek',
       'spiti',
       'buran ghati',
+      'kareri lake',
+      'manimahesh',
+      'chandernahan',
       'fitness',
       'gym',
+      'yoga',
+      'meditation',
+      'psychology',
+      'brain',
+      'vlsi',
+      'semiconductor',
+      'solid state',
+      'verilog',
+      'dsp',
+      'energy sector',
+      'sci-fi',
+      'science fiction',
+      'inception',
+      'fight club',
+      'solo leveling',
     ])
   ) {
     return [
-      `I'm from **Bangana, Himachal Pradesh**, and I'm deeply grounded in the mountains and physical discipline:`,
-      `- **Trekking & Mountains**: High-altitude Himalayan treks (Spiti, Buran Ghati, Chanshal, Kedarkantha, Baralacha) and self-organized camping over crowded city cafés.`,
-      `- **Hands-on Hardware**: Circuit design (Proteus/Altium), discrete components (Zener diodes, voltage dividers), and physical Arduino/STM32 prototyping.`,
-      `- **Fitness & Discipline**: Consistent morning compound lifting and natural vegetarian nutrition.`,
-      `- **High-Concept Fiction**: Stories about relentless self-mastery and puzzle-box worlds like *Inception*, *Fight Club*, and *Solo Leveling*.`,
+      `Outside engineering, **${about.name}** enjoys a mix of outdoor adventure, learning, and personal growth:`,
+      `- **Trekking & adventure**: Self-supported camping and Himalayan treks, including places such as Kareri Lake, Manimahesh Kailash, Buran Ghati, and Chandernahan.`,
+      `- **Building & technology**: Experimenting with AI tools and making practical tools to simplify everyday work; exploring machine learning, digital signal processing, and AI in the energy sector.`,
+      `- **Hardware & physics**: VLSI, semiconductors, solid-state device physics, and Verilog.`,
+      `- **Fitness & wellbeing**: Gym training, building strength and muscle, yoga, meditation, and curiosity about human psychology and the brain.`,
+      `- **Film & anime**: Mind-bending science fiction and thrillers such as *Inception* and *Fight Club*, plus anime such as *Solo Leveling*.`,
     ].join('\n');
   }
 
@@ -435,11 +454,11 @@ export function getPortfolioFallback(message: string) {
       )
       .join('\n');
 
-    return `My certificates and achievements include:\n${certificateList}`;
+    return `${about.name}'s certificates and achievements include:\n${certificateList}`;
   }
 
   if (includesAny(lower, ['resume', 'cv'])) {
-    return `You can view my systems resume and AI/ML CV on the [Resume page](/resume). Direct files: [Resume](${resumeConfig.resumeUrl}) and [AI/ML CV](${resumeConfig.cvUrl}).`;
+    return `View Aryan's systems resume and AI/ML CV on the [Resume page](/resume). Direct files: [Resume](${resumeConfig.resumeUrl}) and [AI/ML CV](${resumeConfig.cvUrl}).`;
   }
 
   if (
@@ -454,10 +473,10 @@ export function getPortfolioFallback(message: string) {
       'tutorials',
     ])
   ) {
-    return 'You can explore my technical articles and tutorials covering Next.js architecture, data fetching, and software engineering on the [Blog page](/blog).';
+    return 'Explore the technical articles and tutorials covering Next.js architecture, data fetching, and software engineering on the [Blog page](/blog).';
   }
 
-  return `${about.description} Ask me about my education, AI/ML skills, projects, work experience, certificates, blog posts, resume, or contact details.`;
+  return `${about.description} The portfolio does not list a specific answer to that question. Ask about Aryan's education, AI/ML skills, projects, work experience, certificates, blog posts, resume, or contact details.`;
 }
 
 export function hasPortfolioIntent(message: string) {
@@ -539,6 +558,39 @@ export function hasPortfolioIntent(message: string) {
     'available',
     'availability',
     'location',
+    'hobbies',
+    'hobby',
+    'interest',
+    'interests',
+    'outside work',
+    'free time',
+    'himachal',
+    'bangana',
+    'mountain',
+    'mountains',
+    'trekking',
+    'trek',
+    'kareri lake',
+    'manimahesh',
+    'buran ghati',
+    'chandernahan',
+    'fitness',
+    'gym',
+    'yoga',
+    'meditation',
+    'psychology',
+    'brain',
+    'vlsi',
+    'semiconductor',
+    'solid state',
+    'verilog',
+    'dsp',
+    'energy sector',
+    'sci-fi',
+    'science fiction',
+    'inception',
+    'fight club',
+    'solo leveling',
     'certificate',
     'certification',
     'achievement',

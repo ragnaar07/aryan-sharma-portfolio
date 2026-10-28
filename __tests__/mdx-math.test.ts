@@ -63,6 +63,38 @@ $$
     expect(output).toContain('katex-display');
   });
 
+  // Case c1: bracket-style display math and parenthesized inline math are normalized and compiled
+  it('case c1: compiles bracketed and parenthesized LaTeX forms', async () => {
+    const input = [
+      'Display: \\[ \\sum_{i=1}^{n} i = \\frac{n(n+1)}{2} \\ ]',
+      'Inline: \\(E = mc^2\\) and $x^2 + y^2 = z^2$.',
+    ].join('\n');
+
+    const validation = await validateMdxCompilation(input);
+    expect(validation.valid).toBe(true);
+
+    const output = await compileToString(input);
+    expect(output).toContain('katex');
+    expect(output).toContain('sum');
+    expect(output).toContain('mc');
+  });
+
+  // Case c2: bare LaTeX environments are wrapped into display math
+  it('case c2: compiles bare LaTeX equation environments', async () => {
+    const input = [
+      '\\begin{equation}',
+      'a^2 + b^2 = c^2',
+      '\\end{equation}',
+    ].join('\n');
+
+    const validation = await validateMdxCompilation(input);
+    expect(validation.valid).toBe(true);
+
+    const output = await compileToString(input);
+    expect(output).toContain('katex');
+    expect(output).toContain('a^2');
+  });
+
   // Case d: math with a < or > sign inside, e.g. $a < b$
   it('case d: compiles math with < or > signs inside intact', async () => {
     const input = 'Threshold test where $a < b$ and $\\alpha > \\beta$.';
