@@ -223,6 +223,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                   frontmatter={post.frontmatter}
                   content={post.content}
                   headings={headings}
+                  slug={normalizedSlug}
                 />
                 <PostNavigation olderPost={olderPost} newerPost={newerPost} />
               </div>
@@ -240,6 +241,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 frontmatter={post.frontmatter}
                 content={post.content}
                 headings={headings}
+                slug={normalizedSlug}
               />
               <PostNavigation olderPost={olderPost} newerPost={newerPost} />
             </div>

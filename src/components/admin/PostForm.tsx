@@ -1,5 +1,6 @@
 'use client';
 
+import 'katex/dist/katex.min.css';
 import {
   AlertCircle,
   ArrowLeft,
@@ -15,9 +16,11 @@ import { Link } from 'next-view-transitions';
 import Image from 'next/image';
 import React, { useActionState, useEffect, useRef, useState } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
+import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
 
-import { savePostAction } from '@/app/admin/actions';
+import { savePostAction, validateMdxAction } from '@/app/admin/actions';
 import { BlogComponents } from '@/components/blog/BlogComponents';
 import {
   BLOG_CATEGORIES,
@@ -25,6 +28,7 @@ import {
   adminBlogLabels,
 } from '@/config/BlogAdmin';
 import type { PostFormStateValues } from '@/lib/blog-validation';
+import { preprocessMdxContent } from '@/lib/mdx-sanitize';
 import type { Post } from '@/types/blog';
 
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -197,10 +201,42 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Real-time MDX compilation syntax validation
+  const [mdxSyntaxError, setMdxSyntaxError] = useState<string | null>(null);
+
   // Preview Mode: 'write' (editor only), 'split' (side-by-side on desktop), 'preview' (preview only)
   const [previewMode, setPreviewMode] = useState<'write' | 'split' | 'preview'>(
     'split',
   );
+
+  // Debounced real-time MDX validation
+  useEffect(() => {
+    if (!contentValue.trim()) {
+      setMdxSyntaxError(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const result = await validateMdxAction(contentValue);
+        if (!result.valid) {
+          const loc =
+            result.line && result.column
+              ? `Line ${result.line}, Column ${result.column}: `
+              : '';
+          setMdxSyntaxError(
+            `${loc}${result.reason || result.error || 'Syntax error'}`,
+          );
+        } else {
+          setMdxSyntaxError(null);
+        }
+      } catch {
+        // Ignore network failure during typing
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [contentValue]);
 
   // Sync state if form action returns updated values after validation failure
   useEffect(() => {
@@ -790,6 +826,28 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                   className="min-h-[500px] font-mono text-sm leading-relaxed"
                   aria-invalid={Boolean(state.errors?.content)}
                 />
+                <p className="text-muted-foreground text-xs leading-normal">
+                  <span className="text-foreground font-medium">
+                    Syntax guide:
+                  </span>{' '}
+                  use{' '}
+                  <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
+                    $...$
+                  </code>{' '}
+                  /{' '}
+                  <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
+                    $$...$$
+                  </code>{' '}
+                  for math, backticks for code, avoid raw{' '}
+                  <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
+                    {'{\u00A0}'}
+                  </code>{' '}
+                  and{' '}
+                  <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
+                    &lt;
+                  </code>{' '}
+                  in plain text.
+                </p>
               </div>
             )}
 
@@ -806,14 +864,28 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                   </Badge>
                 </div>
 
+                {/* Inline MDX syntax compilation warning banner */}
+                {(mdxSyntaxError || state.errors?.content) && (
+                  <Alert variant="destructive" className="py-2.5">
+                    <AlertCircle className="size-4" />
+                    <AlertTitle className="text-xs font-semibold">
+                      MDX Syntax Compilation Error
+                    </AlertTitle>
+                    <AlertDescription className="text-xs">
+                      {mdxSyntaxError || state.errors?.content?.[0]}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <div className="border-border bg-muted/10 max-h-[700px] min-h-[500px] overflow-y-auto rounded-lg border p-6">
                   {contentValue.trim() ? (
                     <article className="prose prose-neutral dark:prose-invert max-w-none">
                       <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
+                        remarkPlugins={[remarkGfm, remarkMath]}
+                        rehypePlugins={[rehypeKatex]}
                         components={previewComponents as unknown as Components}
                       >
-                        {contentValue}
+                        {preprocessMdxContent(contentValue)}
                       </ReactMarkdown>
                     </article>
                   ) : (
