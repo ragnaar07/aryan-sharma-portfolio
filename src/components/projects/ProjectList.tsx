@@ -27,7 +27,7 @@ export function ProjectList({ projects, className }: ProjectListProps) {
       )}
     >
       {projects.map((project: Project) => (
-        <ProjectCard key={project.title} project={project} />
+        <ProjectCard key={project.projectDetailsPageSlug} project={project} />
       ))}
     </div>
   );

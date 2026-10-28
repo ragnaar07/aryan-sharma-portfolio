@@ -7,6 +7,8 @@ import {
   Columns2,
   Eye,
   EyeOff,
+  Image as ImageIcon,
+  ListChecks,
   Loader2,
   Save,
   Trash2,
@@ -468,10 +470,10 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
       )}
 
       {/* Article Details & Metadata Cards */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
         {/* Post Identity (Title, Slug, Description) */}
-        <div className="space-y-6 lg:col-span-2">
-          <Card className="border-border bg-card">
+        <div className="h-full">
+          <Card className="border-border bg-card h-full">
             <CardHeader className="pb-4">
               <CardTitle className="text-base font-semibold">
                 Article Identity
@@ -537,6 +539,31 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                 )}
               </div>
 
+              <div className="space-y-1.5">
+                <Label htmlFor="tags" className="text-sm font-medium">
+                  {adminBlogLabels.form.tagsLabel}{' '}
+                  <span className="text-destructive">*</span>
+                </Label>
+                <Textarea
+                  id="tags"
+                  name="tags"
+                  defaultValue={currentValues.tags}
+                  placeholder={adminBlogLabels.form.tagsPlaceholder}
+                  rows={3}
+                  className="min-h-24 resize-y"
+                  disabled={isPending}
+                  aria-invalid={Boolean(state.errors?.tags)}
+                />
+                <p className="text-muted-foreground text-xs">
+                  Enter comma-separated keywords. Use multiple lines if helpful.
+                </p>
+                {state.errors?.tags && (
+                  <p className="text-destructive text-xs font-medium">
+                    {state.errors.tags[0]}
+                  </p>
+                )}
+              </div>
+
               {/* Description */}
               <div className="space-y-1.5">
                 <Label htmlFor="description" className="text-sm font-medium">
@@ -548,7 +575,8 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                   name="description"
                   defaultValue={currentValues.description}
                   placeholder={adminBlogLabels.form.descriptionPlaceholder}
-                  rows={3}
+                  rows={6}
+                  className="min-h-40 resize-y"
                   disabled={isPending}
                   aria-invalid={Boolean(state.errors?.description)}
                 />
@@ -562,15 +590,50 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
           </Card>
         </div>
 
-        {/* Sidebar Controls (Visibility, Category, Cover, Tags) */}
-        <div className="space-y-6">
-          <Card className="border-border bg-card">
+        {/* Sidebar Controls */}
+        <div className="flex h-full flex-col gap-4">
+          <Card className="border-primary/15 from-primary/[0.06] to-card shrink-0 bg-gradient-to-br">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-semibold">
+                <ListChecks className="text-primary size-4" />
+                Before you publish
+              </CardTitle>
+              <CardDescription>
+                A quick pass helps every article feel complete.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="text-muted-foreground grid gap-3 text-xs leading-relaxed">
+                <li className="flex items-start gap-2.5">
+                  <span className="bg-primary mt-1.5 size-1.5 shrink-0 rounded-full" />
+                  <span>
+                    Write a clear title and summary so readers know what
+                    they&apos;ll learn.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <span className="bg-primary mt-1.5 size-1.5 shrink-0 rounded-full" />
+                  <span>
+                    Add relevant tags and choose the closest matching category.
+                  </span>
+                </li>
+                <li className="flex items-start gap-2.5">
+                  <span className="bg-primary mt-1.5 size-1.5 shrink-0 rounded-full" />
+                  <span>
+                    Use the live preview to check formatting before saving.
+                  </span>
+                </li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          <Card className="border-border bg-card flex-1">
             <CardHeader className="pb-4">
               <CardTitle className="text-base font-semibold">
                 Visibility & Category
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="flex flex-1 flex-col gap-5">
               {/* Published Switch */}
               <div className="border-border/60 flex items-center justify-between rounded-lg border p-3.5">
                 <div className="space-y-0.5">
@@ -628,167 +691,6 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                 )}
               </div>
 
-              {/* Tags */}
-              <div className="space-y-1.5">
-                <Label htmlFor="tags" className="text-sm font-medium">
-                  {adminBlogLabels.form.tagsLabel}{' '}
-                  <span className="text-destructive">*</span>
-                </Label>
-                <Input
-                  id="tags"
-                  name="tags"
-                  defaultValue={currentValues.tags}
-                  placeholder={adminBlogLabels.form.tagsPlaceholder}
-                  disabled={isPending}
-                  aria-invalid={Boolean(state.errors?.tags)}
-                />
-                <p className="text-muted-foreground text-xs">
-                  {adminBlogLabels.form.tagsHelper}
-                </p>
-                {state.errors?.tags && (
-                  <p className="text-destructive text-xs font-medium">
-                    {state.errors.tags[0]}
-                  </p>
-                )}
-              </div>
-
-              {/* Cover Image Upload & URL Fallback */}
-              <div className="space-y-2.5">
-                <Label className="text-sm font-medium">
-                  {adminBlogLabels.form.coverImageLabel}
-                </Label>
-                <input type="hidden" name="coverImage" value={coverImage} />
-
-                {coverImage ? (
-                  <div className="space-y-2">
-                    {/* Live Preview */}
-                    <div className="border-border bg-muted/30 relative aspect-video w-full overflow-hidden rounded-lg border shadow-sm">
-                      <Image
-                        src={coverImage}
-                        alt="Cover preview"
-                        fill
-                        unoptimized={coverImage.startsWith('/api/blog/cover/')}
-                        className="object-cover"
-                      />
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        disabled={isPending || isUploadingCover}
-                        onClick={() => fileInputRef.current?.click()}
-                        className="h-8 text-xs"
-                      >
-                        <UploadCloud className="mr-1.5 size-3.5" />
-                        <span>Replace</span>
-                      </Button>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        disabled={isPending || isUploadingCover}
-                        onClick={() => {
-                          setCoverImage('');
-                          setCoverUploadError(null);
-                        }}
-                        className="text-destructive hover:bg-destructive/10 hover:text-destructive h-8 text-xs"
-                      >
-                        <Trash2 className="mr-1.5 size-3.5" />
-                        <span>{adminBlogLabels.form.coverRemove}</span>
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onClick={() =>
-                      !isUploadingCover && fileInputRef.current?.click()
-                    }
-                    className={`border-border/70 hover:border-primary/50 hover:bg-muted/30 flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-4 text-center transition-colors ${
-                      isDragging ? 'border-primary bg-primary/5' : ''
-                    } ${isUploadingCover ? 'cursor-not-allowed opacity-60' : ''}`}
-                  >
-                    {isUploadingCover ? (
-                      <div className="flex flex-col items-center gap-1.5 py-2">
-                        <Loader2 className="text-primary size-6 animate-spin" />
-                        <p className="text-muted-foreground text-xs font-medium">
-                          {adminBlogLabels.form.coverUploading}
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-center gap-1.5 py-1">
-                        <div className="bg-muted flex size-9 items-center justify-center rounded-full">
-                          <UploadCloud className="text-muted-foreground size-4" />
-                        </div>
-                        <div>
-                          <p className="text-foreground text-xs font-medium">
-                            {adminBlogLabels.form.coverUploadDropzone}
-                          </p>
-                          <p className="text-muted-foreground mt-0.5 text-[11px]">
-                            {adminBlogLabels.form.coverUploadHint}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Hidden native file input */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/avif"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      handleCoverUpload(file);
-                    }
-                  }}
-                />
-
-                {/* Inline Error messages with aria-live */}
-                <div aria-live="polite">
-                  {coverUploadError && (
-                    <p className="text-destructive mt-1 text-xs font-medium">
-                      {coverUploadError}
-                    </p>
-                  )}
-                  {state.errors?.coverImage && (
-                    <p className="text-destructive mt-1 text-xs font-medium">
-                      {state.errors.coverImage[0]}
-                    </p>
-                  )}
-                </div>
-
-                {/* Fallback External URL Text Input */}
-                <div className="space-y-1 pt-1">
-                  <Label
-                    htmlFor="coverImageUrlInput"
-                    className="text-muted-foreground text-xs font-normal"
-                  >
-                    {adminBlogLabels.form.coverExternalUrlLabel}
-                  </Label>
-                  <Input
-                    id="coverImageUrlInput"
-                    value={coverImage}
-                    onChange={(e) => {
-                      setCoverImage(e.target.value);
-                      setCoverUploadError(null);
-                    }}
-                    placeholder={
-                      adminBlogLabels.form.coverExternalUrlPlaceholder
-                    }
-                    disabled={isPending || isUploadingCover}
-                    className="h-8 text-xs"
-                  />
-                </div>
-              </div>
-
               {/* YouTube Video URL */}
               <div className="space-y-1.5">
                 <Label htmlFor="youtubeUrl" className="text-sm font-medium">
@@ -811,14 +713,185 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                   </p>
                 )}
               </div>
+
+              <div className="border-border/60 bg-muted/30 mt-auto rounded-lg border p-3">
+                <div className="flex items-center gap-2">
+                  <Badge variant={isPublished ? 'default' : 'secondary'}>
+                    {isPublished ? 'Published' : 'Draft'}
+                  </Badge>
+                  <p className="text-muted-foreground text-xs leading-relaxed">
+                    {isPublished
+                      ? 'This article will be visible on your public blog.'
+                      : 'This article stays private until you publish it.'}
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
       </div>
 
+      <Card className="border-border bg-card">
+        <CardHeader className="flex flex-row items-start justify-between gap-4 pb-4">
+          <div className="space-y-1.5">
+            <CardTitle className="flex items-center gap-2 text-base font-semibold">
+              <ImageIcon className="text-primary size-4" />
+              {adminBlogLabels.form.coverImageLabel}
+            </CardTitle>
+            <CardDescription>
+              Choose the image that represents this article in blog cards and
+              social previews.
+            </CardDescription>
+          </div>
+          <Badge variant="outline" className="shrink-0 text-[10px]">
+            16:9 recommended
+          </Badge>
+        </CardHeader>
+        <CardContent className="grid items-center gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)]">
+          <input type="hidden" name="coverImage" value={coverImage} />
+          <div className="space-y-2">
+            {coverImage ? (
+              <>
+                <div className="border-border bg-muted/30 relative aspect-[16/7] max-h-64 w-full max-w-3xl overflow-hidden rounded-lg border shadow-sm">
+                  <Image
+                    src={coverImage}
+                    alt="Cover preview"
+                    fill
+                    unoptimized
+                    className="object-cover"
+                  />
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={isPending || isUploadingCover}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <UploadCloud className="mr-1.5 size-3.5" />
+                    Replace image
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={isPending || isUploadingCover}
+                    onClick={() => {
+                      setCoverImage('');
+                      setCoverUploadError(null);
+                    }}
+                    className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                  >
+                    <Trash2 className="mr-1.5 size-3.5" />
+                    {adminBlogLabels.form.coverRemove}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div
+                role="button"
+                tabIndex={isUploadingCover || isPending ? -1 : 0}
+                aria-label={adminBlogLabels.form.coverUploadDropzone}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                onClick={() =>
+                  !isUploadingCover && fileInputRef.current?.click()
+                }
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    if (!isUploadingCover && !isPending) {
+                      fileInputRef.current?.click();
+                    }
+                  }
+                }}
+                className={`border-border/70 hover:border-primary/50 hover:bg-muted/30 focus-visible:ring-ring flex aspect-[16/7] max-h-64 w-full max-w-3xl cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-5 text-center transition-colors focus-visible:ring-2 focus-visible:outline-none ${
+                  isDragging ? 'border-primary bg-primary/5' : ''
+                } ${isUploadingCover ? 'cursor-not-allowed opacity-60' : ''}`}
+              >
+                {isUploadingCover ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="text-primary size-7 animate-spin" />
+                    <p className="text-muted-foreground text-sm font-medium">
+                      {adminBlogLabels.form.coverUploading}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="bg-muted flex size-11 items-center justify-center rounded-full">
+                      <UploadCloud className="text-muted-foreground size-5" />
+                    </div>
+                    <div>
+                      <p className="text-foreground text-sm font-medium">
+                        {adminBlogLabels.form.coverUploadDropzone}
+                      </p>
+                      <p className="text-muted-foreground mt-1 text-xs">
+                        {adminBlogLabels.form.coverUploadHint}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/avif"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) handleCoverUpload(file);
+              }}
+            />
+            <div aria-live="polite">
+              {coverUploadError && (
+                <p className="text-destructive mt-1 text-xs font-medium">
+                  {coverUploadError}
+                </p>
+              )}
+              {state.errors?.coverImage && (
+                <p className="text-destructive mt-1 text-xs font-medium">
+                  {state.errors.coverImage[0]}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col justify-center gap-4 lg:border-l lg:pl-6">
+            <div className="space-y-1.5">
+              <Label
+                htmlFor="coverImageUrlInput"
+                className="text-sm font-medium"
+              >
+                Or use an image link
+              </Label>
+              <Input
+                id="coverImageUrlInput"
+                value={coverImage}
+                onChange={(event) => {
+                  setCoverImage(event.target.value);
+                  setCoverUploadError(null);
+                }}
+                placeholder={adminBlogLabels.form.coverExternalUrlPlaceholder}
+                disabled={isPending || isUploadingCover}
+              />
+              <p className="text-muted-foreground text-xs">
+                Paste an HTTPS image URL or a path to an image in the site.
+              </p>
+            </div>
+            <p className="text-muted-foreground bg-muted/40 rounded-lg p-3 text-xs leading-relaxed">
+              {adminBlogLabels.form.coverUploadHint}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Editor & Live MDX Preview Section */}
-      <Card className="border-border bg-card flex min-h-0 flex-col">
-        <CardHeader className="border-border/40 flex shrink-0 flex-row items-center justify-between border-b pb-3">
+      <Card className="border-border bg-card flex min-h-0 flex-col overflow-hidden">
+        <CardHeader className="border-border/40 flex shrink-0 flex-col items-start justify-between gap-3 border-b pb-4 sm:flex-row sm:items-center">
           <div>
             <CardTitle className="text-base font-semibold">
               {adminBlogLabels.form.contentLabel}{' '}

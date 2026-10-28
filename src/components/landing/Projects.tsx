@@ -1,16 +1,15 @@
-'use client';
-
 import { Link } from 'next-view-transitions';
-import React from 'react';
 
-import { projects } from '@/config/Projects';
+import { getPublishedProjectsForUi } from '@/lib/projects';
 
 import Container from '../common/Container';
 import SectionHeading from '../common/SectionHeading';
 import { ProjectList } from '../projects/ProjectList';
 import { Button } from '../ui/button';
 
-export default function Projects() {
+export default async function Projects() {
+  const projects = await getPublishedProjectsForUi();
+
   return (
     <Container className="mt-20">
       <SectionHeading subHeading="Featured" heading="Projects" />

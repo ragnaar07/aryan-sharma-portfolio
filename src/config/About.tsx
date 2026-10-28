@@ -18,15 +18,15 @@ export const mySkills = [
 
 export const about = {
   name: 'Aryan Sharma',
-  description: `I grew up in Bangana, Himachal Pradesh, and graduated in Electrical Engineering from NIT Hamirpur.
+  description: `I’m Aryan Sharma, an Electrical Engineering graduate from NIT Hamirpur, raised in Bangana, Himachal Pradesh. I enjoy building practical software and exploring how ideas connect across AI, energy, hardware, and low-level systems.
 
-My background bridges three distinct areas: physical hardware, low-level systems, and applied machine learning.
+I’m especially curious about machine learning and AI applications in the energy sector, digital signal processing, and the details of hardware—from VLSI and semiconductor devices to solid-state physics and Verilog. I also like experimenting with AI tools and building small tools that make everyday work easier.
 
-On the hardware and physics side, I like working from first principles—exploring semiconductor physics, analog circuit design, PCB layouts, and microcontroller systems with Arduino and STM32.
+Away from the screen, I’m happiest exploring the mountains. I enjoy self-supported camping and trekking, and hope to explore places such as Kareri Lake, Manimahesh Kailash, Buran Ghati, and Chandernahan. I also make time for gym training, building strength, yoga, and meditation, alongside an interest in human psychology and how the brain works.
 
-On the software side, I write modular C++ middleware (like my railway validation work at Alstom), automate Linux workflows, and build deep learning and transformer pipelines in Python.
-
-Outside of work, I spend my time in the mountains—trekking high-altitude Himalayan trails like Spiti, Buran Ghati, and Chanshal—or keeping up a morning lifting routine. I value discipline, depth over hype, and understanding engineering from the silicon layer on up.`,
+For a change of pace, I’m drawn to mind-bending science fiction and thrillers like *Inception* and *Fight Club*, as well as anime such as *Solo Leveling*. Whether I’m learning, building, training, or out on a trail, I value curiosity, consistency, and going a little deeper.`,
+  seoDescription:
+    'Aryan Sharma is an Electrical Engineering graduate interested in AI and energy, hardware and semiconductor physics, Himalayan trekking, fitness, and technology.',
   education: {
     degree: 'B.Tech in Electrical Engineering',
     institution: 'NIT Hamirpur',

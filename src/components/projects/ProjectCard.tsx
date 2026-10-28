@@ -39,21 +39,35 @@ export function ProjectCard({ project }: ProjectCardProps) {
     <Card className="group h-full w-full overflow-hidden border-gray-100 p-0 shadow-none transition-all dark:border-gray-800">
       <CardHeader className="p-0">
         <div className="group relative aspect-video overflow-hidden">
-          <Image
-            className="h-full w-full object-cover"
-            src={project.image}
-            alt={project.title}
-            width={1920}
-            height={1080}
-          />
+          <Link
+            href={titleHref}
+            target={isExternalTitle ? '_blank' : undefined}
+            aria-label={`View ${project.title} project`}
+            className="absolute inset-0"
+          >
+            <Image
+              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+              src={project.image}
+              alt={project.title}
+              width={1920}
+              height={1080}
+            />
+            <span className="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 via-transparent to-transparent p-5 text-sm font-medium text-white opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+              View project
+            </span>
+          </Link>
           {project.video && (
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <div className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100 hover:backdrop-blur-xs">
-                  <button className="flex size-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm transition-colors duration-200 group-hover:cursor-pointer hover:bg-white/30">
+                <button
+                  type="button"
+                  aria-label={`Play ${project.title} video`}
+                  className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100 hover:backdrop-blur-xs"
+                >
+                  <span className="flex size-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm transition-colors duration-200 hover:bg-white/30">
                     <PlayCircle />
-                  </button>
-                </div>
+                  </span>
+                </button>
               </DialogTrigger>
               <DialogContent className="w-full max-w-4xl border-0 p-0">
                 <div className="aspect-video w-full">
