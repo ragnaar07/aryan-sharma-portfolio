@@ -73,10 +73,13 @@ export async function savePostAction(
     // Validate MDX compilation before touching Redis
     const mdxCheck = await validateMdxCompilation(validated.content);
     if (!mdxCheck.valid) {
+      const excerpt = mdxCheck.sourceExcerpt
+        ? ` ("${mdxCheck.sourceExcerpt}")`
+        : '';
       const errorMsg =
         mdxCheck.line && mdxCheck.column
-          ? `MDX compilation error at line ${mdxCheck.line}, column ${mdxCheck.column}: ${mdxCheck.reason || mdxCheck.error}`
-          : `MDX compilation error: ${mdxCheck.reason || mdxCheck.error || 'Could not parse expression with acorn'}`;
+          ? `MDX compilation error at line ${mdxCheck.line}, column ${mdxCheck.column}: ${mdxCheck.reason || mdxCheck.error}${excerpt}`
+          : `MDX compilation error: ${mdxCheck.reason || mdxCheck.error || 'Could not parse expression with acorn'}${excerpt}`;
       return {
         success: false,
         message: errorMsg,
@@ -252,6 +255,7 @@ export async function validateMdxAction(content: string): Promise<{
   reason?: string;
   line?: number;
   column?: number;
+  sourceExcerpt?: string;
 }> {
   await requireAdmin({ redirectOnFail: false });
   return validateMdxCompilation(content);
