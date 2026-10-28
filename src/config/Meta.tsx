@@ -98,7 +98,7 @@ export const pageMetadata: Record<string, PageMeta> = {
   // Home page
   '/': {
     title: `${heroConfig.name} - ${heroConfig.title}`,
-    description: `${about.description} Explore my projects, experience, and technical expertise.`,
+    description: `${about.seoDescription} Explore my projects, experience, and technical expertise.`,
     keywords: [
       'portfolio',
       'software engineer',

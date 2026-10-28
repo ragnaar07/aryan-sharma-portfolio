@@ -16,8 +16,15 @@ import {
   postFormSchema,
 } from '@/lib/blog-validation';
 import { preprocessMdxContent, validateMdxCompilation } from '@/lib/mdx-server';
+import {
+  normalizeProjectRecord,
+  projectFormSchema,
+  safeProjectSlug,
+} from '@/lib/project-validation';
+import { getProjectForAdminBySlug } from '@/lib/projects';
 import { deleteCover } from '@/lib/redis-covers';
 import { getRedisPostBySlug } from '@/lib/redis-posts';
+import { deleteProjectRecord, saveProjectRecord } from '@/lib/redis-projects';
 import type { Post } from '@/types/blog';
 
 /**
@@ -259,4 +266,146 @@ export async function validateMdxAction(content: string): Promise<{
 }> {
   await requireAdmin({ redirectOnFail: false });
   return validateMdxCompilation(content);
+}
+
+export async function saveProjectAction(
+  _prevState: {
+    success: boolean;
+    message?: string;
+    errors?: Record<string, string[]>;
+  },
+  formData: FormData,
+): Promise<{
+  success: boolean;
+  message?: string;
+  errors?: Record<string, string[]>;
+}> {
+  await requireAdmin({ redirectOnFail: false });
+
+  const values = {
+    title: String(formData.get('title') || ''),
+    slug: String(formData.get('slug') || ''),
+    shortDescription: String(formData.get('shortDescription') || ''),
+    description: String(formData.get('description') || ''),
+    category: String(formData.get('category') || ''),
+    tags: String(formData.get('tags') || ''),
+    techStack: String(formData.get('techStack') || ''),
+    coverImage: String(formData.get('coverImage') || ''),
+    liveUrl: String(formData.get('liveUrl') || ''),
+    repoUrl: String(formData.get('repoUrl') || ''),
+    demoUrl: String(formData.get('demoUrl') || ''),
+    github: String(formData.get('github') || ''),
+    featured:
+      formData.get('featured') === 'on' || formData.get('featured') === 'true',
+    status: String(formData.get('status') || 'draft'),
+    order: Number(formData.get('order') || 0),
+  };
+
+  const parseResult = projectFormSchema.safeParse(values);
+  if (!parseResult.success) {
+    const fieldErrors = parseResult.error.flatten().fieldErrors;
+    const errors: Record<string, string[]> = {};
+    for (const [key, errorList] of Object.entries(fieldErrors)) {
+      if (errorList && errorList.length > 0) {
+        errors[key] = errorList;
+      }
+    }
+
+    return {
+      success: false,
+      message: 'Please fix the invalid project values.',
+      errors,
+    };
+  }
+
+  const validated = parseResult.data;
+  const cleanSlug = safeProjectSlug(validated.slug);
+  const existingProject = await getProjectForAdminBySlug(cleanSlug);
+  const now = new Date().toISOString();
+  const status = validated.status;
+  const isPublished = status === 'published';
+
+  const projectRecord = normalizeProjectRecord({
+    id: existingProject?.id ?? cleanSlug,
+    slug: cleanSlug,
+    title: validated.title,
+    shortDescription: validated.shortDescription,
+    description: validated.description,
+    category: validated.category,
+    tags: validated.tags,
+    techStack: validated.techStack,
+    coverImage: validated.coverImage || null,
+    liveUrl: validated.liveUrl || null,
+    repoUrl: validated.repoUrl || null,
+    demoUrl: validated.demoUrl || null,
+    github: validated.github || null,
+    featured: validated.featured,
+    isPublished,
+    status,
+    metrics: [],
+    highlights: [],
+    createdAt: existingProject?.createdAt ?? now,
+    updatedAt: now,
+    publishedAt: isPublished ? (existingProject?.publishedAt ?? now) : null,
+    order: Number.isFinite(validated.order) ? validated.order : 0,
+    image: validated.coverImage || null,
+    details: false,
+    projectDetailsPageSlug: `/projects/${cleanSlug}`,
+    isWorking: true,
+    githubRepo: validated.repoUrl || validated.github || null,
+  });
+
+  if (!projectRecord) {
+    return {
+      success: false,
+      message: 'The project payload is invalid after normalization.',
+    };
+  }
+
+  await saveProjectRecord(projectRecord);
+  revalidatePath('/projects');
+  revalidatePath('/');
+  revalidatePath('/admin/projects');
+  revalidatePath(`/projects/${cleanSlug}`);
+
+  return {
+    success: true,
+    message: 'Project saved successfully.',
+  };
+}
+
+export async function deleteProjectAction(
+  slug: string,
+): Promise<{ success: boolean; message?: string; error?: string }> {
+  await requireAdmin({ redirectOnFail: false });
+
+  const cleanSlug = safeProjectSlug(slug);
+  if (!cleanSlug) {
+    return { success: false, error: 'A valid project slug is required.' };
+  }
+
+  try {
+    const deleted = await deleteProjectRecord(cleanSlug);
+    revalidatePath('/projects');
+    revalidatePath('/');
+    revalidatePath('/admin/projects');
+    revalidatePath(`/projects/${cleanSlug}`);
+
+    return {
+      success: deleted,
+      message: deleted
+        ? 'Project deleted successfully.'
+        : 'Project was not found.',
+      error: deleted ? undefined : 'Project was not found.',
+    };
+  } catch (error) {
+    console.error('[actions] Error deleting project:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'An unknown error occurred while deleting the project.',
+    };
+  }
 }
