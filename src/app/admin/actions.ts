@@ -10,9 +10,12 @@ import { getFileBlogPostBySlug } from '@/lib/blog-file-loader';
 import {
   type PostActionState,
   type PostFormStateValues,
+  extractCoverId,
   extractYouTubeVideoId,
+  normalizeSlug,
   postFormSchema,
 } from '@/lib/blog-validation';
+import { deleteCover } from '@/lib/redis-covers';
 import { getRedisPostBySlug } from '@/lib/redis-posts';
 import type { Post } from '@/types/blog';
 
@@ -64,7 +67,8 @@ export async function savePostAction(
 
   try {
     const validated = validation.data;
-    const existingPost = await getPostForAdminBySlug(validated.slug);
+    const cleanSlug = normalizeSlug(validated.slug);
+    const existingPost = await getPostForAdminBySlug(cleanSlug);
 
     const nowIso = new Date().toISOString();
     // Keep original publish date when editing an existing slug; otherwise use nowIso
@@ -73,13 +77,31 @@ export async function savePostAction(
       : nowIso;
     const updatedDate = nowIso;
 
+    // Cleanup old cover image if it was an internal uploaded Redis cover and has changed
+    if (
+      existingPost?.coverImage &&
+      existingPost.coverImage !== validated.coverImage
+    ) {
+      const oldCoverId = extractCoverId(existingPost.coverImage);
+      if (oldCoverId) {
+        try {
+          await deleteCover(oldCoverId);
+        } catch (cleanupError) {
+          console.warn(
+            `[actions] Failed to clean up old cover "${oldCoverId}":`,
+            cleanupError,
+          );
+        }
+      }
+    }
+
     const post: Post = {
-      slug: validated.slug,
+      slug: cleanSlug,
       title: validated.title,
       description: validated.description,
       content: validated.content,
-      coverImage: validated.coverImage,
-      image: validated.coverImage,
+      coverImage: validated.coverImage || undefined,
+      image: validated.coverImage || undefined,
       category: validated.category,
       youtubeId: extractYouTubeVideoId(validated.youtubeUrl) || undefined,
       tags: validated.tags,
@@ -93,6 +115,7 @@ export async function savePostAction(
 
     // Revalidate all affected cache tags and routes
     revalidatePath('/blog');
+    revalidatePath('/blog/[slug]', 'page');
     revalidatePath(`/blog/${post.slug}`);
     revalidatePath('/sitemap.xml');
     revalidatePath('/robots.txt');
@@ -134,14 +157,15 @@ export async function deletePostAction(
   // First line requirement: enforce admin session
   await requireAdmin({ redirectOnFail: false });
 
-  if (!slug || typeof slug !== 'string') {
+  const cleanSlug = normalizeSlug(slug);
+  if (!cleanSlug) {
     return { success: false, error: 'A valid slug string is required.' };
   }
 
   try {
     const [redisPost, filePost] = await Promise.all([
-      getRedisPostBySlug(slug),
-      Promise.resolve(getFileBlogPostBySlug(slug)),
+      getRedisPostBySlug(cleanSlug),
+      Promise.resolve(getFileBlogPostBySlug(cleanSlug)),
     ]);
 
     if (!redisPost && filePost) {
@@ -155,23 +179,31 @@ export async function deletePostAction(
     if (!redisPost && !filePost) {
       return {
         success: false,
-        error: `Post "${slug}" was not found.`,
+        error: `Post "${cleanSlug}" was not found.`,
       };
     }
 
-    const deleted = await deletePost(slug);
+    const deleted = await deletePost(cleanSlug);
 
-    if (!deleted && filePost) {
-      return {
-        success: false,
-        error:
-          'Local file-based posts (src/data/blog/) are version-controlled in the repository and cannot be deleted via the admin dashboard. Remove the MDX file from the repository to delete this article.',
-      };
+    // Clean up stored cover image in Redis if this post was using an uploaded cover
+    if (deleted && redisPost?.coverImage) {
+      const coverId = extractCoverId(redisPost.coverImage);
+      if (coverId) {
+        try {
+          await deleteCover(coverId);
+        } catch (coverCleanupError) {
+          console.warn(
+            `[actions] Failed to clean up cover "${coverId}" during post deletion:`,
+            coverCleanupError,
+          );
+        }
+      }
     }
 
     // Revalidate paths
     revalidatePath('/blog');
-    revalidatePath(`/blog/${slug}`);
+    revalidatePath('/blog/[slug]', 'page');
+    revalidatePath(`/blog/${cleanSlug}`);
     revalidatePath('/sitemap.xml');
     revalidatePath('/robots.txt');
     revalidatePath('/');

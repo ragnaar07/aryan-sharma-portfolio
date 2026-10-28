@@ -27,6 +27,17 @@ export const BLOG_VALIDATION = {
   content: {
     maxCharacters: 500_000, // ~500 KB MDX
   },
+  coverImage: {
+    maxUploadSizeBytes: 400 * 1024, // 400 KB server limit
+    targetMaxSizeBytes: 300 * 1024, // ~300 KB client compression target
+    maxDimension: 1200, // 1200px max width/height
+    allowedMimeTypes: [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/avif',
+    ] as const,
+  },
 } as const;
 
 export const adminBlogLabels = {
@@ -49,11 +60,18 @@ export const adminBlogLabels = {
       'A concise summary of the article used for cards and search metadata...',
     categoryLabel: 'Category',
     categoryPlaceholder: 'Select a category',
-    coverImageLabel: 'Cover Image URL or Path',
+    coverImageLabel: 'Cover Image',
     coverImagePlaceholder:
-      'e.g. /blog/routing-in-nextjs.png or https://images.unsplash.com/...',
+      'e.g. /blog/routing-in-nextjs.png, https://images.unsplash.com/..., or uploaded image',
     coverImageHelper:
-      'Relative paths in /public (e.g. /blog/...) or HTTPS image URLs.',
+      'Upload an image (JPEG, PNG, WebP, AVIF) or enter an HTTPS image URL / static path.',
+    coverUploadDropzone: 'Drop cover image here, or click to browse',
+    coverUploadHint:
+      'JPEG, PNG, WebP, AVIF up to 400 KB. Automatically resized and compressed.',
+    coverUploading: 'Compressing and uploading image...',
+    coverRemove: 'Remove Cover',
+    coverExternalUrlLabel: 'External HTTPS Image URL',
+    coverExternalUrlPlaceholder: 'https://images.unsplash.com/...',
     tagsLabel: 'Tags (Comma-Separated)',
     tagsPlaceholder: 'Next.js, React, Architecture, Performance',
     tagsHelper: 'Enter keywords separated by commas.',
@@ -84,6 +102,12 @@ export const adminBlogLabels = {
       'Slug must consist only of lowercase letters, numbers, and hyphens without consecutive hyphens.',
     categoryInvalid: 'Please select a valid category from the list.',
     coverImageRequired: 'Cover image URL or path is required.',
+    coverImageInvalid:
+      'Cover image must be an HTTPS URL, a static /... path, or an uploaded /api/blog/cover/<uuid> path. Javascript and data URIs are rejected.',
+    coverImageTooLarge:
+      'Cover image exceeds the maximum allowed size of 400 KB.',
+    coverImageMimeInvalid:
+      'Invalid image format. Supported formats: JPEG, PNG, WebP, and AVIF.',
     tagsRequired: 'Please provide at least one tag (comma-separated).',
     contentRequired: 'Article content cannot be empty.',
     contentTooLarge:

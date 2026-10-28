@@ -104,8 +104,8 @@ export function getAllFileBlogPostPreviews(): BlogPostPreview[] {
     frontmatter: {
       title: post.title,
       description: post.description,
-      image: post.coverImage,
-      coverImage: post.coverImage,
+      image: post.coverImage || post.image || undefined,
+      coverImage: post.coverImage || post.image || undefined,
       category: post.category,
       youtubeId: post.youtubeId,
       tags: post.tags,

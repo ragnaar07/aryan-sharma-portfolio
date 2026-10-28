@@ -8,10 +8,12 @@ import {
   EyeOff,
   Loader2,
   Save,
+  Trash2,
+  UploadCloud,
 } from 'lucide-react';
 import { Link } from 'next-view-transitions';
 import Image from 'next/image';
-import React, { useActionState, useEffect, useState } from 'react';
+import React, { useActionState, useEffect, useRef, useState } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
@@ -79,6 +81,78 @@ const previewComponents = {
   },
 };
 
+/**
+ * Client-side image compressor:
+ * Downscales to max 1200px wide, encodes as WebP, and steps down quality from 0.85
+ * until the payload is under ~300 KB before uploading.
+ */
+async function compressImageToWebp(file: File): Promise<Blob> {
+  const allowedMimeTypes = [
+    'image/jpeg',
+    'image/png',
+    'image/webp',
+    'image/avif',
+  ];
+  if (!allowedMimeTypes.includes(file.type)) {
+    throw new Error(adminBlogLabels.errors.coverImageMimeInvalid);
+  }
+
+  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+    const img = new window.Image();
+    const objectUrl = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Failed to load image file for compression.'));
+    };
+    img.src = objectUrl;
+  });
+
+  const maxDimension = 1200;
+  let targetWidth = image.naturalWidth || image.width;
+  let targetHeight = image.naturalHeight || image.height;
+
+  if (targetWidth > maxDimension) {
+    targetHeight = Math.round((targetHeight * maxDimension) / targetWidth);
+    targetWidth = maxDimension;
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error('Canvas 2D context unavailable.');
+  }
+
+  ctx.drawImage(image, 0, 0, targetWidth, targetHeight);
+
+  const targetMaxBytes = 300 * 1024; // ~300 KB
+  let quality = 0.85;
+  let blob: Blob | null = null;
+
+  while (quality >= 0.4) {
+    blob = await new Promise<Blob | null>((resolve) => {
+      canvas.toBlob((b) => resolve(b), 'image/webp', quality);
+    });
+
+    if (blob && blob.size <= targetMaxBytes) {
+      break;
+    }
+    quality = Math.round((quality - 0.1) * 100) / 100;
+  }
+
+  if (!blob) {
+    throw new Error('Image compression failed.');
+  }
+
+  return blob;
+}
+
 export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
   const initialValues: PostFormStateValues = {
     title: initialPost?.title || '',
@@ -114,6 +188,15 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
   );
   const [titleValue, setTitleValue] = useState<string>(currentValues.title);
 
+  // Cover image management state
+  const [coverImage, setCoverImage] = useState<string>(
+    currentValues.coverImage || '',
+  );
+  const [isUploadingCover, setIsUploadingCover] = useState<boolean>(false);
+  const [coverUploadError, setCoverUploadError] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Preview Mode: 'write' (editor only), 'split' (side-by-side on desktop), 'preview' (preview only)
   const [previewMode, setPreviewMode] = useState<'write' | 'split' | 'preview'>(
     'split',
@@ -135,6 +218,9 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
       if (state.values.title) {
         setTitleValue(state.values.title);
       }
+      if (state.values.coverImage !== undefined) {
+        setCoverImage(state.values.coverImage);
+      }
     }
   }, [state.values]);
 
@@ -146,6 +232,59 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)+/g, '');
       setSlugValue(generated);
+    }
+  };
+
+  const handleCoverUpload = async (file: File) => {
+    setCoverUploadError(null);
+    setIsUploadingCover(true);
+    try {
+      const compressedBlob = await compressImageToWebp(file);
+      if (compressedBlob.size > 400 * 1024) {
+        throw new Error(adminBlogLabels.errors.coverImageTooLarge);
+      }
+
+      const formData = new FormData();
+      formData.append('file', compressedBlob, 'cover.webp');
+
+      const response = await fetch('/api/admin/upload-cover', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to upload cover image.');
+      }
+
+      setCoverImage(data.url);
+    } catch (err) {
+      setCoverUploadError(
+        err instanceof Error ? err.message : 'Upload failed. Please try again.',
+      );
+    } finally {
+      setIsUploadingCover(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      handleCoverUpload(files[0]);
     }
   };
 
@@ -206,20 +345,30 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
             </Button>
           </div>
 
-          <Button variant="outline" size="sm" asChild disabled={isPending}>
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+            disabled={isPending || isUploadingCover}
+          >
             <Link href="/admin">{adminBlogLabels.form.cancelButton}</Link>
           </Button>
 
           <Button
             type="submit"
             size="sm"
-            disabled={isPending}
+            disabled={isPending || isUploadingCover}
             className="flex items-center gap-2"
           >
             {isPending ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
                 <span>{adminBlogLabels.form.savingButton}</span>
+              </>
+            ) : isUploadingCover ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                <span>Uploading...</span>
               </>
             ) : (
               <>
@@ -425,28 +574,141 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                 )}
               </div>
 
-              {/* Cover Image */}
-              <div className="space-y-1.5">
-                <Label htmlFor="coverImage" className="text-sm font-medium">
-                  {adminBlogLabels.form.coverImageLabel}{' '}
-                  <span className="text-destructive">*</span>
+              {/* Cover Image Upload & URL Fallback */}
+              <div className="space-y-2.5">
+                <Label className="text-sm font-medium">
+                  {adminBlogLabels.form.coverImageLabel}
                 </Label>
-                <Input
-                  id="coverImage"
-                  name="coverImage"
-                  defaultValue={currentValues.coverImage}
-                  placeholder={adminBlogLabels.form.coverImagePlaceholder}
-                  disabled={isPending}
-                  aria-invalid={Boolean(state.errors?.coverImage)}
-                />
-                <p className="text-muted-foreground text-xs">
-                  {adminBlogLabels.form.coverImageHelper}
-                </p>
-                {state.errors?.coverImage && (
-                  <p className="text-destructive text-xs font-medium">
-                    {state.errors.coverImage[0]}
-                  </p>
+                <input type="hidden" name="coverImage" value={coverImage} />
+
+                {coverImage ? (
+                  <div className="space-y-2">
+                    {/* Live Preview */}
+                    <div className="border-border bg-muted/30 relative aspect-video w-full overflow-hidden rounded-lg border shadow-sm">
+                      <Image
+                        src={coverImage}
+                        alt="Cover preview"
+                        fill
+                        unoptimized={coverImage.startsWith('/api/blog/cover/')}
+                        className="object-cover"
+                      />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={isPending || isUploadingCover}
+                        onClick={() => fileInputRef.current?.click()}
+                        className="h-8 text-xs"
+                      >
+                        <UploadCloud className="mr-1.5 size-3.5" />
+                        <span>Replace</span>
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={isPending || isUploadingCover}
+                        onClick={() => {
+                          setCoverImage('');
+                          setCoverUploadError(null);
+                        }}
+                        className="text-destructive hover:bg-destructive/10 hover:text-destructive h-8 text-xs"
+                      >
+                        <Trash2 className="mr-1.5 size-3.5" />
+                        <span>{adminBlogLabels.form.coverRemove}</span>
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() =>
+                      !isUploadingCover && fileInputRef.current?.click()
+                    }
+                    className={`border-border/70 hover:border-primary/50 hover:bg-muted/30 flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-4 text-center transition-colors ${
+                      isDragging ? 'border-primary bg-primary/5' : ''
+                    } ${isUploadingCover ? 'cursor-not-allowed opacity-60' : ''}`}
+                  >
+                    {isUploadingCover ? (
+                      <div className="flex flex-col items-center gap-1.5 py-2">
+                        <Loader2 className="text-primary size-6 animate-spin" />
+                        <p className="text-muted-foreground text-xs font-medium">
+                          {adminBlogLabels.form.coverUploading}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-1.5 py-1">
+                        <div className="bg-muted flex size-9 items-center justify-center rounded-full">
+                          <UploadCloud className="text-muted-foreground size-4" />
+                        </div>
+                        <div>
+                          <p className="text-foreground text-xs font-medium">
+                            {adminBlogLabels.form.coverUploadDropzone}
+                          </p>
+                          <p className="text-muted-foreground mt-0.5 text-[11px]">
+                            {adminBlogLabels.form.coverUploadHint}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 )}
+
+                {/* Hidden native file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/avif"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      handleCoverUpload(file);
+                    }
+                  }}
+                />
+
+                {/* Inline Error messages with aria-live */}
+                <div aria-live="polite">
+                  {coverUploadError && (
+                    <p className="text-destructive mt-1 text-xs font-medium">
+                      {coverUploadError}
+                    </p>
+                  )}
+                  {state.errors?.coverImage && (
+                    <p className="text-destructive mt-1 text-xs font-medium">
+                      {state.errors.coverImage[0]}
+                    </p>
+                  )}
+                </div>
+
+                {/* Fallback External URL Text Input */}
+                <div className="space-y-1 pt-1">
+                  <Label
+                    htmlFor="coverImageUrlInput"
+                    className="text-muted-foreground text-xs font-normal"
+                  >
+                    {adminBlogLabels.form.coverExternalUrlLabel}
+                  </Label>
+                  <Input
+                    id="coverImageUrlInput"
+                    value={coverImage}
+                    onChange={(e) => {
+                      setCoverImage(e.target.value);
+                      setCoverUploadError(null);
+                    }}
+                    placeholder={
+                      adminBlogLabels.form.coverExternalUrlPlaceholder
+                    }
+                    disabled={isPending || isUploadingCover}
+                    className="h-8 text-xs"
+                  />
+                </div>
               </div>
 
               {/* YouTube Video URL */}
