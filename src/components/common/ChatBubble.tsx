@@ -28,6 +28,8 @@ interface Message {
   sender: 'user' | 'bot';
   timestamp: string;
   isStreaming?: boolean;
+  isFallback?: boolean;
+  streamError?: boolean;
 }
 
 function getChatTime(): string {
@@ -40,7 +42,7 @@ function getChatTime(): string {
 const initialMessages: Message[] = [
   {
     id: 1,
-    text: "Hello! I'm Aryan's Portfolio Assistant. How can I help you?",
+    text: "Hi! I'm the AI assistant for Aryan's portfolio. What would you like to know?",
     sender: 'bot',
     timestamp: 'Now',
   },
@@ -50,6 +52,9 @@ const ChatBubble: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [chatMode, setChatMode] = useState<
+    'ready' | 'connecting' | 'gemini' | 'fallback' | 'error'
+  >('ready');
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { triggerHaptic, isMobile } = useHapticFeedback();
 
@@ -84,6 +89,7 @@ const ChatBubble: React.FC = () => {
     setMessages((prev) => [...prev, userMessage]);
     setNewMessage('');
     setIsLoading(true);
+    setChatMode('connecting');
 
     // Create a temporary bot message for streaming
     const botMessageId = Date.now() + 1;
@@ -124,6 +130,7 @@ const ChatBubble: React.FC = () => {
 
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
+    setChatMode('connecting');
 
     // Create a temporary bot message for streaming
     const botMessageId = Date.now() + 1;
@@ -159,29 +166,61 @@ const ChatBubble: React.FC = () => {
         throw new Error('Chat API request failed');
       }
 
-      const data = (await response.json()) as { text?: string };
-      const responseText =
-        data.text?.trim() || getPortfolioFallback(messageText);
+      const mode = response.headers.get('X-Chat-Mode');
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error('Chat response stream is unavailable.');
+
+      const decoder = new TextDecoder();
+      let responseText = '';
+      setChatMode(mode === 'gemini' ? 'gemini' : 'fallback');
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (value) responseText += decoder.decode(value, { stream: !done });
+        if (done) responseText += decoder.decode();
+        if (responseText) {
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === botMessageId ? { ...msg, text: responseText } : msg,
+            ),
+          );
+        }
+        if (done) break;
+      }
+
+      if (!responseText.trim()) {
+        responseText = getPortfolioFallback(messageText);
+        setChatMode('fallback');
+      }
 
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === botMessageId
-            ? { ...msg, text: responseText, isStreaming: false }
+            ? {
+                ...msg,
+                text: responseText,
+                isStreaming: false,
+                isFallback: mode !== 'gemini',
+              }
             : msg,
         ),
       );
-      setIsLoading(false);
-      setNewMessage('');
     } catch {
-      const responseText = getPortfolioFallback(messageText);
-
+      setChatMode('error');
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === botMessageId
-            ? { ...msg, text: responseText, isStreaming: false }
+            ? {
+                ...msg,
+                text: msg.text || getPortfolioFallback(messageText),
+                isStreaming: false,
+                isFallback: !msg.text,
+                streamError: true,
+              }
             : msg,
         ),
       );
+    } finally {
       setIsLoading(false);
       setNewMessage('');
     }
@@ -206,8 +245,21 @@ const ChatBubble: React.FC = () => {
             </h3>
             <div className="text-muted-foreground text-xs">
               <div className="flex items-center gap-1">
-                <div className="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
-                Online
+                <div
+                  className={cn(
+                    'h-2 w-2 rounded-full',
+                    chatMode === 'gemini' && 'bg-green-500',
+                    chatMode === 'fallback' && 'bg-amber-500',
+                    chatMode === 'error' && 'bg-destructive',
+                    chatMode === 'connecting' && 'animate-pulse bg-amber-500',
+                    chatMode === 'ready' && 'bg-muted-foreground',
+                  )}
+                />
+                {chatMode === 'connecting' && 'Connecting...'}
+                {chatMode === 'gemini' && 'Gemini connected'}
+                {chatMode === 'fallback' && 'Local fallback'}
+                {chatMode === 'error' && 'Connection issue'}
+                {chatMode === 'ready' && 'Ready to chat'}
               </div>
             </div>
           </div>
@@ -280,6 +332,16 @@ const ChatBubble: React.FC = () => {
                         )}
                       </div>
                     </div>
+                    {message.isFallback && (
+                      <p className="text-muted-foreground mt-2 text-xs">
+                        Gemini is unavailable; this is a limited local answer.
+                      </p>
+                    )}
+                    {message.streamError && (
+                      <p className="text-muted-foreground mt-2 text-xs">
+                        The response was interrupted.
+                      </p>
+                    )}
                     <p
                       className={cn(
                         'mt-1 text-xs',

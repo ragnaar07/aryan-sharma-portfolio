@@ -10,6 +10,7 @@ export interface Project {
   details: boolean;
   projectDetailsPageSlug: string;
   isWorking: boolean;
+  featured?: boolean;
 }
 
 export interface ProjectCaseStudyFrontmatter {

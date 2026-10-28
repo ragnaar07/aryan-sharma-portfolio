@@ -1,4 +1,10 @@
-import { ExternalLink, LogOut, ShieldCheck } from 'lucide-react';
+import {
+  BookOpen,
+  ExternalLink,
+  FolderKanban,
+  LogOut,
+  ShieldCheck,
+} from 'lucide-react';
 import type { Session } from 'next-auth';
 import { Link } from 'next-view-transitions';
 
@@ -39,6 +45,28 @@ export function AdminHeader({ session }: AdminHeaderProps) {
 
         {/* Controls */}
         <div className="flex items-center gap-3">
+          <Button variant="ghost" size="sm" asChild>
+            <Link
+              href="/admin/projects"
+              aria-label="Back to projects"
+              className="flex items-center gap-1.5 text-xs"
+            >
+              <FolderKanban className="size-3.5" />
+              <span className="hidden sm:inline">Projects</span>
+            </Link>
+          </Button>
+
+          <Button variant="ghost" size="sm" asChild>
+            <Link
+              href="/admin"
+              aria-label="Back to blog posts"
+              className="flex items-center gap-1.5 text-xs"
+            >
+              <BookOpen className="size-3.5" />
+              <span className="hidden sm:inline">Blog</span>
+            </Link>
+          </Button>
+
           <Button variant="ghost" size="sm" asChild className="hidden sm:flex">
             <Link
               href="/"

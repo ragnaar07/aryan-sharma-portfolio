@@ -90,16 +90,30 @@ export default function ContactForm() {
 
   return (
     <Card className="border-none bg-transparent shadow-none">
-      <CardHeader className="px-0">
-        <CardTitle>Send a structured message</CardTitle>
-        <CardDescription>
-          Fill this in and it will open your email app with everything
-          prefilled. No paid backend or account is required.
-        </CardDescription>
+      <CardHeader className="flex flex-col gap-4 px-0 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <CardTitle>Send a structured message</CardTitle>
+          <CardDescription className="mt-2">
+            Fill this in and it will open your email app with everything
+            prefilled. No paid backend or account is required.
+          </CardDescription>
+        </div>
+        <Button
+          type="submit"
+          form="contact-form"
+          className="w-full shrink-0 sm:w-fit"
+        >
+          <Chat className="mr-2 h-4 w-4" />
+          Open Email Draft
+        </Button>
       </CardHeader>
       <CardContent className="px-0">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form
+            id="contact-form"
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-6"
+          >
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <FormField
                 control={form.control}
@@ -181,11 +195,6 @@ export default function ContactForm() {
                 </FormItem>
               )}
             />
-
-            <Button type="submit" className="w-full sm:w-fit">
-              <Chat className="mr-2 h-4 w-4" />
-              Open Email Draft
-            </Button>
           </form>
         </Form>
       </CardContent>
