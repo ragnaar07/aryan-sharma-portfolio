@@ -9,6 +9,8 @@ export const contactConfig = {
   availability:
     'Open to AI/ML, software engineering, and automation opportunities',
   responseTime: 'Usually responds within 24-48 hours',
+  interests:
+    'Himalayan trekking and camping, AI and hardware projects, fitness, yoga, meditation, sci-fi, and anime',
   form: {
     labels: {
       name: 'Name',
