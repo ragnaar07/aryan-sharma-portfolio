@@ -4,6 +4,7 @@ import {
   Mail,
   MapPin,
   MessageSquare,
+  Mountain,
   Timer,
 } from 'lucide-react';
 import { Metadata } from 'next';
@@ -103,6 +104,10 @@ export default function ContactPage() {
                 <div className="flex gap-3">
                   <MapPin className="text-muted-foreground mt-0.5 h-4 w-4" />
                   <p>{contactConfig.location}</p>
+                </div>
+                <div className="flex gap-3">
+                  <Mountain className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
+                  <p>{contactConfig.interests}</p>
                 </div>
               </CardContent>
             </Card>
