@@ -9,6 +9,11 @@ import {
 } from '@/lib/blog-file-loader';
 import { calculateReadingTime } from '@/lib/blog-reading-time';
 import {
+  extractCoverId,
+  isValidCoverImage,
+  normalizeSlug,
+} from '@/lib/blog-validation';
+import {
   deleteRedisPost,
   getRedisPostBySlug,
   listRedisPosts,
@@ -28,6 +33,7 @@ export {
   slugifyHeading,
   type TocHeading,
 } from '@/lib/blog-toc';
+export { extractCoverId, isValidCoverImage, normalizeSlug };
 
 /**
  * Merge Redis posts with local file posts.
@@ -56,7 +62,7 @@ export function mergePosts(redisPosts: Post[], filePosts: Post[]): Post[] {
  * Converts a Post into a BlogPostPreview.
  */
 function postToPreview(post: Post): BlogPostPreview {
-  const cover = post.coverImage || post.image;
+  const cover = post.coverImage || post.image || undefined;
   return {
     slug: post.slug,
     frontmatter: {
@@ -134,22 +140,41 @@ export async function getAllBlogPostsAsync(): Promise<BlogPostPreview[]> {
 export async function getBlogPostBySlug(
   slug: string,
 ): Promise<BlogPost | null> {
+  const normalizedSlug = normalizeSlug(slug);
+  if (!normalizedSlug) {
+    return null;
+  }
+
   // 1. Try Redis first
-  const redisPost = await getRedisPostBySlug(slug);
-  if (redisPost) {
-    if (!redisPost.isPublished) {
-      return null; // Public function hides drafts
+  try {
+    const redisPost = await getRedisPostBySlug(normalizedSlug);
+    if (redisPost) {
+      if (!redisPost.isPublished) {
+        return null; // Public function hides drafts
+      }
+      return postToBlogPost(redisPost);
     }
-    return postToBlogPost(redisPost);
+  } catch (error) {
+    console.error(
+      `[blog] Failed to retrieve Redis post for slug "${normalizedSlug}":`,
+      error,
+    );
   }
 
   // 2. Fall back to local MDX file
-  const filePost = getFileBlogPostBySlug(slug);
-  if (filePost) {
-    if (!filePost.frontmatter.isPublished) {
-      return null;
+  try {
+    const filePost = getFileBlogPostBySlug(normalizedSlug);
+    if (filePost) {
+      if (!filePost.frontmatter.isPublished) {
+        return null;
+      }
+      return filePost;
     }
-    return filePost;
+  } catch (error) {
+    console.error(
+      `[blog] Failed to read local MDX file for slug "${normalizedSlug}":`,
+      error,
+    );
   }
 
   return null;
@@ -225,19 +250,20 @@ export async function getRelatedPosts(
   currentSlug: string,
   maxPosts = 3,
 ): Promise<BlogPostPreview[]> {
-  const currentPost = await getBlogPostBySlug(currentSlug);
+  const normalizedSlug = normalizeSlug(currentSlug);
+  const currentPost = await getBlogPostBySlug(normalizedSlug);
   if (!currentPost || !currentPost.frontmatter.isPublished) {
     return [];
   }
 
   const allPosts = await getPublishedBlogPostsAsync();
   const currentCategory = currentPost.frontmatter.category?.toLowerCase();
-  const currentTags = currentPost.frontmatter.tags.map((tag) =>
-    tag.toLowerCase(),
-  );
+  const currentTags = Array.isArray(currentPost.frontmatter.tags)
+    ? currentPost.frontmatter.tags.map((tag) => tag.toLowerCase())
+    : [];
 
   const postsWithScore = allPosts
-    .filter((post) => post.slug !== currentSlug)
+    .filter((post) => post.slug !== normalizedSlug)
     .map((post) => {
       let score = 0;
       // Shared category: +2 points
@@ -248,7 +274,10 @@ export async function getRelatedPosts(
         score += 2;
       }
       // Shared tags: +1 point each
-      const sharedTags = post.frontmatter.tags.filter((tag) =>
+      const postTags = Array.isArray(post.frontmatter.tags)
+        ? post.frontmatter.tags
+        : [];
+      const sharedTags = postTags.filter((tag) =>
         currentTags.includes(tag.toLowerCase()),
       );
       score += sharedTags.length;
@@ -293,16 +322,35 @@ export async function getPostForAdminBySlug(
 ): Promise<Post | null> {
   await requireAdmin();
 
+  const normalizedSlug = normalizeSlug(slug);
+  if (!normalizedSlug) {
+    return null;
+  }
+
   // Check Redis first
-  const redisPost = await getRedisPostBySlug(slug);
-  if (redisPost) {
-    return redisPost;
+  try {
+    const redisPost = await getRedisPostBySlug(normalizedSlug);
+    if (redisPost) {
+      return redisPost;
+    }
+  } catch (error) {
+    console.error(
+      `[blog] Failed to fetch admin post "${normalizedSlug}" from Redis:`,
+      error,
+    );
   }
 
   // Fall back to local MDX file
-  const filePost = getFileBlogPostBySlug(slug);
-  if (filePost) {
-    return blogPostToPost(filePost);
+  try {
+    const filePost = getFileBlogPostBySlug(normalizedSlug);
+    if (filePost) {
+      return blogPostToPost(filePost);
+    }
+  } catch (error) {
+    console.error(
+      `[blog] Failed to read admin MDX file "${normalizedSlug}":`,
+      error,
+    );
   }
 
   return null;
@@ -323,5 +371,6 @@ export async function savePost(post: Post): Promise<void> {
  */
 export async function deletePost(slug: string): Promise<boolean> {
   await requireAdmin();
-  return deleteRedisPost(slug);
+  const normalizedSlug = normalizeSlug(slug);
+  return deleteRedisPost(normalizedSlug);
 }

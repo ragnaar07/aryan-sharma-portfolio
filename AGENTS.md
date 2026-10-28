@@ -19,7 +19,8 @@ This repository contains the personal portfolio of **Aryan Sharma**, focused on 
   - `blog.ts`: Merge layer combining Redis and local file posts with conflict resolution and public/admin APIs.
   - `blog-file-loader.ts`: Fallback file loader for local MDX articles in `src/data/blog/`.
   - `redis-posts.ts`: Upstash Redis persistence layer for database-backed posts.
-  - `blog-validation.ts`: Zod schema input validation and YouTube URL extractor.
+  - `redis-covers.ts`: Upstash Redis persistence layer for uploaded cover image buffers.
+  - `blog-validation.ts`: Zod schema input validation, slug normalization, and YouTube URL extractor.
   - `blog-reading-time.ts`: Word-count-based reading time calculation.
   - `blog-toc.ts`: Heading anchor extractor and slugifier for table of contents.
   - `auth-guard.ts`: `requireAdmin` server-only session check and authorization gate.
@@ -27,6 +28,8 @@ This repository contains the personal portfolio of **Aryan Sharma**, focused on 
   - `admin/`: Admin dashboard (`/admin`), creation editor (`/admin/posts/new`), and edit editor (`/admin/posts/[slug]/edit`).
   - `admin/actions.ts`: Authenticated Server Actions for saving and deleting posts with cache revalidation.
   - `admin/login/`: Dedicated admin GitHub OAuth sign-in page.
+  - `api/admin/upload-cover/`: Authenticated admin multipart upload endpoint saving compressed cover images to Redis.
+  - `api/blog/cover/[id]/`: Public high-performance image serving route with immutable CDN caching and ETag headers.
   - `api/auth/[...nextauth]/`: Auth.js v5 route handler.
   - `sitemap.ts`: Dynamic sitemap generator including published posts (Redis + file) and excluding drafts/admin.
   - `robots.ts`: Crawler rules with sitemap link and `/admin` disallow rules.
@@ -77,6 +80,14 @@ The portfolio features an AI assistant powered by Gemini with a deterministic fa
 - `BlogFrontmatter` (and normalized `Post`) is the shared contract across both sources (`title`, `description`, `date`, `tags`, `isPublished`, `category`, `coverImage`, `youtubeId`, `readingTime`, `updatedDate`).
 - When slugs collide, Redis records always win over local file-based MDX.
 - Public APIs (`getPublishedBlogPostsAsync`, `getBlogPostBySlug`) must return only published posts (`isPublished: true`). Drafts are strictly accessible through authenticated admin APIs (`getAllPostsForAdmin`, `getPostForAdminBySlug`).
+- **Cover Image Constraints & Storage**:
+  - Never write uploaded files to `public/` at runtime (read-only filesystem on Vercel serverless).
+  - Image binary payloads are stored in Upstash Redis under separate keys (`blog:cover:<id>`) to keep post records and list endpoints lightweight.
+  - Allowed image formats: JPEG, PNG, WebP, and AVIF only. SVGs and executable file formats are strictly disallowed to prevent XSS.
+  - The server validates actual binary magic bytes, rejecting mismatches between file extension and true MIME type.
+  - Size limits: 400 KB server maximum. The client compressor downscales images to a maximum width of 1200px and progressively reduces WebP quality until under ~300 KB before upload.
+  - Public cover delivery is cached via `Cache-Control: public, max-age=31536000, immutable` and ETag 304 revalidation at `/api/blog/cover/[id]`, preserving the Upstash command quota.
+  - Replaced or deleted post covers are automatically cleaned up from Redis via `deleteCover()`.
 
 ### Rule 6: Admin Security & Server Action Boundaries
 

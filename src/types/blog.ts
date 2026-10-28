@@ -1,7 +1,7 @@
 export interface BlogFrontmatter {
   title: string;
   description: string;
-  image: string;
+  image?: string;
   coverImage?: string;
   category?: string;
   youtubeId?: string;
@@ -18,8 +18,8 @@ export interface Post {
   title: string;
   description: string;
   content: string; // raw MDX content
-  coverImage: string;
-  image: string;
+  coverImage?: string;
+  image?: string;
   category: string;
   youtubeId?: string;
   tags: string[];

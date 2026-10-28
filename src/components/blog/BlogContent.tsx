@@ -34,18 +34,33 @@ export function BlogContent({
     coverImage,
     category = 'Engineering',
     youtubeId,
-    tags,
+    tags = [],
     date,
     readingTime = '1 min read',
   } = frontmatter;
 
-  const displayImage = coverImage || image || '/assets/me.png';
+  const rawImage = coverImage || image;
+  const displayImage =
+    typeof rawImage === 'string' && rawImage.trim().length > 0
+      ? rawImage.trim()
+      : '/assets/me.png';
+  const isCoverApi = displayImage.startsWith('/api/blog/cover/');
 
-  const formattedDate = new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  });
+  let formattedDate = '';
+  try {
+    const d = new Date(date);
+    if (!Number.isNaN(d.getTime())) {
+      formattedDate = d.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    }
+  } catch {
+    formattedDate = '';
+  }
+
+  const safeTags = Array.isArray(tags) ? tags : [];
 
   return (
     <article className="w-full">
@@ -57,6 +72,7 @@ export function BlogContent({
             src={displayImage}
             alt={title}
             fill
+            unoptimized={isCoverApi}
             className="object-cover"
             priority
           />
@@ -68,7 +84,7 @@ export function BlogContent({
             <Badge variant="default" className="text-xs font-medium">
               {category}
             </Badge>
-            {tags.map((tag) => (
+            {safeTags.map((tag) => (
               <Badge key={tag} variant="secondary" className="text-xs">
                 #{tag}
               </Badge>
