@@ -37,11 +37,20 @@ describe('Gemini streaming response parsing', () => {
     expect(prompt).toContain('/projects/transformer-predictive-maintenance');
   });
 
+  it('instructs the assistant to use a natural Hindi-English style with light Himachali expressions', () => {
+    const prompt = generateSystemPrompt();
+
+    expect(prompt).toContain('natural mix of Hindi and English (Hinglish)');
+    expect(prompt).toContain('simple Himachali expressions');
+    expect(prompt).toContain("Match the visitor's language");
+  });
+
   it('answers hobby questions with the updated interests and recognizes them as portfolio topics', () => {
     const answer = getPortfolioFallback(
       'What are Aryan’s hobbies and interests?',
     );
 
+    expect(answer).toContain('Hmji ji');
     expect(hasPortfolioIntent('Does Aryan enjoy VLSI and trekking?')).toBe(
       true,
     );

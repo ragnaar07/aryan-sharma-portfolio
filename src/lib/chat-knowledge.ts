@@ -154,7 +154,7 @@ export function getPortfolioKnowledgeContext() {
   ].join('\n\n');
 }
 
-export function getPortfolioFallback(message: string) {
+function getPortfolioFallbackAnswer(message: string) {
   const lower = message.toLowerCase();
   const skills = heroConfig.skills.map((skill) => skill.name).join(', ');
   const email = socialLinks.find((link) => link.name === 'Email')?.href ?? '';
@@ -477,6 +477,10 @@ export function getPortfolioFallback(message: string) {
   }
 
   return `${about.description} The portfolio does not list a specific answer to that question. Ask about Aryan's education, AI/ML skills, projects, work experience, certificates, blog posts, resume, or contact details.`;
+}
+
+export function getPortfolioFallback(message: string) {
+  return `Hmji ji, Aryan ke portfolio se yeh info mili:\n\n${getPortfolioFallbackAnswer(message)}`;
 }
 
 export function hasPortfolioIntent(message: string) {
