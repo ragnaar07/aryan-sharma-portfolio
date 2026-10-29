@@ -42,7 +42,7 @@ function getChatTime(): string {
 const initialMessages: Message[] = [
   {
     id: 1,
-    text: "Hi! I'm the AI assistant for Aryan's portfolio. What would you like to know?",
+    text: 'Hmji बड़का जी kaise ho?🤖',
     sender: 'bot',
     timestamp: 'Now',
   },
