@@ -71,8 +71,8 @@ export async function generateMetadata({
       updatedDate,
     } = post.frontmatter;
 
-    const rawImage = coverImage || image || '/assets/me.png';
-    let ogImageUrl = '/assets/me.png';
+    const rawImage = coverImage || image || '/meta/share/blog.jpg';
+    let ogImageUrl = '/meta/share/blog.jpg';
     try {
       if (rawImage.startsWith('http://') || rawImage.startsWith('https://')) {
         ogImageUrl = rawImage;
@@ -81,7 +81,7 @@ export async function generateMetadata({
         ogImageUrl = new URL(cleanPath, siteUrl).toString();
       }
     } catch {
-      ogImageUrl = `${siteUrl}/assets/me.png`;
+      ogImageUrl = `${siteUrl}/meta/share/blog.jpg`;
     }
 
     let publishedTime: string | undefined;

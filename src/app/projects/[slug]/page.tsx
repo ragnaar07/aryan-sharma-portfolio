@@ -75,8 +75,14 @@ export async function generateMetadata({
       openGraph: {
         title: `${project.title} - Project`,
         description: project.shortDescription,
-        images: [project.coverImage || '/meta/projects.png'],
+        images: [project.coverImage || '/meta/share/projects.jpg'],
         type: 'website',
+      },
+      twitter: {
+        card: 'summary_large_image',
+        title: `${project.title} - Project`,
+        description: project.shortDescription,
+        images: [project.coverImage || '/meta/share/projects.jpg'],
       },
     };
   }

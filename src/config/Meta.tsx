@@ -72,7 +72,7 @@ export const siteConfig = {
   get url() {
     return getSiteUrl();
   },
-  ogImage: '/meta/opengraph-image.png',
+  ogImage: '/meta/share/home.jpg',
   author: {
     name: about.name,
     twitter: '',
@@ -106,7 +106,7 @@ export const pageMetadata: Record<string, PageMeta> = {
       'machine learning',
       'projects',
     ],
-    ogImage: '/meta/hero.png',
+    ogImage: '/meta/share/home.jpg',
     twitterCard: 'summary_large_image',
   },
 
@@ -116,7 +116,7 @@ export const pageMetadata: Record<string, PageMeta> = {
     description:
       "Get in touch with me for collaborations, projects, or opportunities. I'd love to hear from you!",
     keywords: ['contact', 'hire', 'collaboration', 'freelance', 'developer'],
-    ogImage: '/assets/profile-avatar.jpg',
+    ogImage: '/meta/share/contact.jpg',
     twitterCard: 'summary',
   },
 
@@ -132,7 +132,7 @@ export const pageMetadata: Record<string, PageMeta> = {
       'software engineer',
       'employment history',
     ],
-    ogImage: '/meta/work.png',
+    ogImage: '/meta/share/work-experience.jpg',
     twitterCard: 'summary_large_image',
   },
 
@@ -149,7 +149,7 @@ export const pageMetadata: Record<string, PageMeta> = {
       'applications',
       'software',
     ],
-    ogImage: '/meta/projects.png',
+    ogImage: '/meta/share/projects.jpg',
     twitterCard: 'summary_large_image',
   },
 
@@ -165,7 +165,7 @@ export const pageMetadata: Record<string, PageMeta> = {
       'machine learning',
       'technical writing',
     ],
-    ogImage: '/meta/blogs.png',
+    ogImage: '/meta/share/blog.jpg',
     twitterCard: 'summary_large_image',
   },
 
@@ -181,7 +181,7 @@ export const pageMetadata: Record<string, PageMeta> = {
       'qualifications',
       'download',
     ],
-    ogImage: '/meta/resume.png',
+    ogImage: '/meta/share/resume.jpg',
     twitterCard: 'summary',
   },
 
@@ -198,7 +198,7 @@ export const pageMetadata: Record<string, PageMeta> = {
       'productivity',
       'development environment',
     ],
-    ogImage: '/meta/gears.png',
+    ogImage: '/meta/share/gears.jpg',
     twitterCard: 'summary_large_image',
   },
 
@@ -215,7 +215,7 @@ export const pageMetadata: Record<string, PageMeta> = {
       'development environment',
       'guide',
     ],
-    ogImage: '/meta/setup.png',
+    ogImage: '/meta/share/setup.jpg',
     twitterCard: 'summary_large_image',
   },
 
@@ -232,7 +232,7 @@ export const pageMetadata: Record<string, PageMeta> = {
       'software engineering',
       'ai',
     ],
-    ogImage: '/meta/work.png',
+    ogImage: '/meta/share/journey.jpg',
     twitterCard: 'summary_large_image',
   },
 
@@ -249,7 +249,7 @@ export const pageMetadata: Record<string, PageMeta> = {
       'awards',
       'learning',
     ],
-    ogImage: '/meta/projects.png',
+    ogImage: '/meta/share/certificates.jpg',
     twitterCard: 'summary_large_image',
   },
 };
@@ -280,8 +280,6 @@ export function generateMetadata(pathname: string) {
       images: [
         {
           url: pageMeta.ogImage || siteConfig.ogImage,
-          width: 1200,
-          height: 630,
           alt: pageMeta.title,
         },
       ],

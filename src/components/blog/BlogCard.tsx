@@ -35,7 +35,7 @@ export function BlogCard({ post }: BlogCardProps) {
   const displayImage =
     typeof rawImage === 'string' && rawImage.trim().length > 0
       ? rawImage.trim()
-      : '/assets/me.png';
+      : '/meta/share/blog.jpg';
   const isCoverApi = displayImage.startsWith('/api/blog/cover/');
 
   let formattedDate = '';

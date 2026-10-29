@@ -19,7 +19,8 @@
     "eslint-config-next",
     "tailwindcss",
     "tw-animate-css",
-    "postcss"
+    "postcss",
+    "playwright"
   ],
   "ignoreExportsUsedInFile": {
     "interface": true,

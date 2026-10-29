@@ -35,7 +35,7 @@ export const BlogComponents = {
   }) => (
     <div className="border-border relative my-6 aspect-video w-full overflow-hidden rounded-xl border">
       <Image
-        src={src || '/assets/me.png'}
+        src={src || '/meta/share/blog.jpg'}
         alt={alt || 'Blog illustration'}
         fill
         className="object-cover"
