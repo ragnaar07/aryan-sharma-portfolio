@@ -1,6 +1,6 @@
 'use client';
 
-import { FilterX } from 'lucide-react';
+import { ChevronDown, ChevronUp, FilterX } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -24,6 +24,7 @@ export function BlogPageClient({ initialPosts }: BlogPageClientProps) {
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [areTagsExpanded, setAreTagsExpanded] = useState(false);
 
   // Sync state with URL params
   useEffect(() => {
@@ -198,30 +199,60 @@ export function BlogPageClient({ initialPosts }: BlogPageClientProps) {
               <h2 className="text-muted-foreground text-sm font-semibold tracking-wider uppercase">
                 Tags
               </h2>
-              <div className="flex flex-wrap gap-2">
-                {tagsWithCounts.map(([tag, count]) => {
-                  const isSelected =
-                    selectedTag?.toLowerCase() === tag.toLowerCase();
-                  return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => handleTagClick(tag)}
-                      className="transition-colors focus:outline-none"
-                    >
-                      <Badge
-                        variant={isSelected ? 'secondary' : 'outline'}
-                        className={`cursor-pointer px-2.5 py-1 text-xs capitalize ${
-                          isSelected
-                            ? 'border-primary/50 bg-primary/10 text-primary font-medium'
-                            : 'text-muted-foreground'
-                        }`}
+              <div className="flex items-start gap-2">
+                <div
+                  id="blog-tags"
+                  className={`min-w-0 flex-1 gap-2 ${
+                    areTagsExpanded
+                      ? 'flex flex-wrap'
+                      : 'flex [scrollbar-width:none] flex-nowrap overflow-x-auto [&::-webkit-scrollbar]:hidden'
+                  }`}
+                >
+                  {tagsWithCounts.map(([tag, count]) => {
+                    const isSelected =
+                      selectedTag?.toLowerCase() === tag.toLowerCase();
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => handleTagClick(tag)}
+                        className="shrink-0 transition-colors focus:outline-none"
                       >
-                        #{tag} ({count})
-                      </Badge>
-                    </button>
-                  );
-                })}
+                        <Badge
+                          variant={isSelected ? 'secondary' : 'outline'}
+                          className={`cursor-pointer px-2.5 py-0.5 text-xs capitalize ${
+                            isSelected
+                              ? 'border-primary/50 bg-primary/10 text-primary font-medium'
+                              : 'text-muted-foreground'
+                          }`}
+                        >
+                          #{tag} ({count})
+                        </Badge>
+                      </button>
+                    );
+                  })}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-expanded={areTagsExpanded}
+                  aria-controls="blog-tags"
+                  onClick={() => setAreTagsExpanded((expanded) => !expanded)}
+                  className="text-muted-foreground hover:text-foreground h-7 shrink-0 px-2 text-xs"
+                >
+                  {areTagsExpanded ? (
+                    <>
+                      Show less
+                      <ChevronUp className="size-3.5" />
+                    </>
+                  ) : (
+                    <>
+                      View all
+                      <ChevronDown className="size-3.5" />
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           )}
