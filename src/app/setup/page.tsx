@@ -36,8 +36,8 @@ export default function SetupPage() {
             Setup
           </h1>
           <p className="text-muted-foreground mx-auto max-w-2xl px-4 text-base md:text-lg">
-            Complete guide to setting up VS Code with my preferred
-            configuration, extensions, and fonts.
+            A macOS and zsh development setup for VS Code, Python, C++, systems
+            work, and web development.
           </p>
         </div>
         <Separator />
@@ -86,6 +86,25 @@ export default function SetupPage() {
                           </p>
                         </div>
                       </Link>
+                    )}
+
+                    {item.type === 'link' && (
+                      <a
+                        href={item.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="bg-muted/50 hover:bg-muted/70 flex w-full flex-col gap-3 rounded-lg border border-black/10 p-3 transition-colors sm:flex-row sm:items-center md:p-4 dark:border-white/10"
+                      >
+                        <ExternalLink className="text-muted-foreground size-4 flex-shrink-0" />
+                        <div className="flex-1">
+                          <span className="text-sm font-medium">
+                            {item.name}
+                          </span>
+                          <p className="text-muted-foreground mt-1 text-sm">
+                            {item.description}
+                          </p>
+                        </div>
+                      </a>
                     )}
 
                     {item.type === 'instruction' && (
@@ -200,19 +219,17 @@ export default function SetupPage() {
             <div className="ml-4 space-y-3 sm:ml-8 md:ml-16 md:space-y-4">
               <div className="flex items-center gap-3">
                 <p className="text-secondary text-sm">
-                  Paste the code in the settings.json file in VS Code
+                  Merge the settings you want into your VS Code user settings.
                 </p>
               </div>
 
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
-                <p className="text-secondary text-sm">
-                  Save the settings.json file
-                </p>
+                <p className="text-secondary text-sm">Save the settings file</p>
                 <kbd className="bg-muted w-fit rounded border border-black/20 px-2 py-1 font-mono text-xs dark:border-white/20">
-                  Cmd + S (Mac) / Ctrl + S (Windows)
+                  ⌘ + S
                 </kbd>
                 <span className="text-secondary text-sm">
-                  and restart VS Code
+                  Changes apply immediately.
                 </span>
               </div>
 

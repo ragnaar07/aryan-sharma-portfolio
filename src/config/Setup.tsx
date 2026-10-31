@@ -1,184 +1,142 @@
-import { Download, FileText, Settings } from 'lucide-react';
+import { Download, Settings, Terminal } from 'lucide-react';
 
 export const steps = [
   {
     id: 1,
-    title: 'Download necessary files',
+    title: 'Install macOS development tools',
     icon: <Download className="size-4" />,
     content: [
       {
-        type: 'download',
-        name: 'Fira-code.zip',
-        description: "Unzip the font's file",
-        href: '/setup/fira-code.zip',
+        type: 'instruction',
+        text: 'Install the Xcode Command Line Tools if they are not already installed.',
+      },
+      {
+        type: 'prompt',
+        text: 'xcode-select --install',
+      },
+      {
+        type: 'link',
+        name: 'Install Homebrew',
+        description: 'Use the official macOS package manager instructions.',
+        href: 'https://brew.sh/',
+      },
+      {
+        type: 'link',
+        name: 'Install Visual Studio Code',
+        description: 'Download the macOS version of VS Code.',
+        href: 'https://code.visualstudio.com/download',
       },
       {
         type: 'instruction',
-        text: 'Select all the fonts, right click, and click to Install',
+        text: 'Open Terminal (zsh) and install the command-line tools used in my C++, Python, and systems workflows.',
       },
       {
-        type: 'download',
-        name: 'vsc-extensions.txt',
-        description: 'Place this file in downloads',
-        href: '/setup/vsc-extensions.txt',
-      },
-      {
-        type: 'instruction',
-        text: 'Open the vscode in downloads directory',
-      },
-      {
-        type: 'instruction',
-        text: 'Install VSC Export & Import extension in vs code.',
+        type: 'prompt',
+        text: 'brew install git python cmake',
       },
     ],
   },
   {
     id: 2,
-    title: 'Installing all the extensions',
-    icon: <FileText className="size-4" />,
+    title: 'Install VS Code extensions',
+    icon: <Terminal className="size-4" />,
     content: [
       {
-        type: 'instruction',
-        text: 'Open Command Palette by pressing the keyboard shortcut',
-      },
-      {
-        type: 'shortcut',
-        text: 'Cmd + ⇧ + P (Mac) / Ctrl + ⇧ + P (Windows)',
+        type: 'download',
+        name: 'vsc-extensions.txt',
+        description: 'Save the extension list to your Downloads folder.',
+        href: '/setup/vsc-extensions.txt',
       },
       {
         type: 'instruction',
-        text: 'Enter the text in prompt and press Enter ⏎',
+        text: "In VS Code, open the Command Palette and run “Shell Command: Install 'code' command in PATH”.",
+      },
+      {
+        type: 'instruction',
+        text: 'Open Terminal, then run this command to install the extensions from the downloaded list.',
       },
       {
         type: 'prompt',
-        text: 'VSC Export & Import',
-      },
-      {
-        type: 'instruction',
-        text: 'All extension will start to install',
+        text: 'cd ~/Downloads && xargs -n 1 code --install-extension < vsc-extensions.txt',
       },
     ],
   },
   {
     id: 3,
-    title: 'VS Code Settings',
+    title: 'Configure VS Code for macOS and zsh',
     icon: <Settings className="size-4" />,
     content: [
       {
         type: 'instruction',
-        text: 'Open Command Palette by pressing the keyboard shortcut',
+        text: 'Open the Command Palette.',
       },
       {
         type: 'shortcut',
-        text: 'Cmd + ⇧ + P (Mac) / Ctrl + ⇧ + P (Windows)',
+        text: '⌘ + ⇧ + P',
       },
       {
         type: 'instruction',
-        text: 'Enter the text in prompt and press Enter ⏎',
+        text: 'Run “Preferences: Open User Settings (JSON)”.',
       },
       {
         type: 'prompt',
-        text: 'Preferences: Open Settings (JSON)',
+        text: 'Preferences: Open User Settings (JSON)',
       },
       {
         type: 'instruction',
-        text: 'Copy the settings.json from the below window',
+        text: 'Copy the settings below into your user settings. Review any existing preferences before replacing them.',
       },
     ],
   },
 ];
 
 export const settingsJson = `{
-    "CodeGPT.model": "gpt-4",
-    "vscode-edge-devtools.webhint": false,
-    "editor.linkedEditing": true,
-    "editor.minimap.enabled": false,
-    "cmake.configureOnOpen": true,
-    "code-runner.runInTerminal": true,
-    "code-runner.saveFileBeforeRun": true,
-    "liveServer.settings.donotShowInfoMsg": true,
-    "[html]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "[css]": {
-      "editor.defaultFormatter": "HookyQR.beautify"
-    },
-    "explorer.confirmDragAndDrop": false,
-    "liveServer.settings.donotVerifyTags": true,
-    "github.copilot.advanced": {},
-    "editor.cursorSmoothCaretAnimation": "on",
-    "editor.cursorBlinking": "smooth",
-    "files.autoSave": "afterDelay",
-    "[javascript]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "explorer.confirmDelete": false,
-    "editor.stickyScroll.enabled": false,
-    "git.autofetch": true,
-    "git.postCommitCommand": "push",
-    "workbench.iconTheme": "material-icon-theme",
-    
-    // Silence the Noise
-    "breadcrumbs.enabled": false,
-    "editor.hover.enabled": true,
-    "workbench.tips.enabled": false,
-    "editor.colorDecorators": false,
-    "workbench.startupEditor": "none",
-    "editor.lightbulb.enabled": "off",
-    "editor.overviewRulerBorder": false,
-    "editor.renderLineHighlight": "none",
-    "editor.occurrencesHighlight": "off",
-    "problems.decorations.enabled": false,
-    "editor.renderControlCharacters": false,
-    "editor.hideCursorInOverviewRuler": true,
-    "editor.gotoLocation.multipleReferences": "goto",
-    "editor.gotoLocation.multipleDefinitions": "goto",
-    "editor.gotoLocation.multipleDeclarations": "goto",
-    "workbench.editor.enablePreviewFromQuickOpen": false,
-    "editor.gotoLocation.multipleImplementations": "goto",
-    "editor.gotoLocation.multipleTypeDefinitions": "goto",
-  
-    "vscode_custom_css.imports": [
-      "file:///E:/vscode/custom-vscode.css",
-      "file:///E:/vscode/custom-vscode-script.js"
-    ],
-  
-    "[typescriptreact]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "editor.fontFamily": ""fira code", Consolas, 'Courier New', monospace",
-    "workbench.statusBar.visible": false,
-    "[javascriptreact]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "git-auto-pull.watchForChanges": true,
-    "git-auto-pull.pullInterval": 2,
-    "[json]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    },
-    "editor.defaultFormatter": "HookyQR.beautify",
-    "editor.formatOnSave": true,
-    "eslint.run": "onSave",
-    "cSpell.userWords": [
-      "autofetch",
-      "Consolas",
-      "donot",
-      "esbenp",
-      "fileupload",
-      "fira",
-      "tabnine",
-      "webhint"
-    ],
-    "workbench.settings.applyToAllProfiles": [
-      "github.copilot.editor.enableAutoCompletions"
-    ],
-    "emmet.triggerExpansionOnTab": true,
-    "emmet.useInlineCompletions": true,
-    "tailwindCSS.emmetCompletions": true,
-    "workbench.colorTheme": "Night Owl (No Italics)",
-    "editor.wordWrap": "wordWrapColumn",
-    "reactSnippets.settings.importReactOnTop": false,
-    "[typescript]": {
-      "editor.defaultFormatter": "esbenp.prettier-vscode"
-    }
-  }`;
+  "editor.fontFamily": "'SF Mono', Menlo, Monaco, monospace",
+  "editor.fontSize": 14,
+  "editor.fontLigatures": true,
+  "editor.formatOnSave": true,
+  "editor.minimap.enabled": false,
+  "editor.rulers": [88],
+  "editor.tabSize": 4,
+  "files.autoSave": "afterDelay",
+  "git.autofetch": true,
+  "terminal.integrated.defaultProfile.osx": "zsh",
+  "terminal.integrated.fontFamily": "'SF Mono', Menlo, Monaco, monospace",
+  "workbench.colorTheme": "Night Owl",
+  "workbench.iconTheme": "material-icon-theme",
+  "workbench.startupEditor": "none",
+  "python.defaultInterpreterPath": "\${workspaceFolder}/.venv/bin/python",
+  "python.terminal.activateEnvironment": true,
+  "cmake.configureOnOpen": true,
+  "[c]": {
+    "editor.defaultFormatter": "ms-vscode.cpptools"
+  },
+  "[cpp]": {
+    "editor.defaultFormatter": "ms-vscode.cpptools"
+  },
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[jsonc]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.black-formatter"
+  },
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.tabSize": 2
+  }
+}`;
