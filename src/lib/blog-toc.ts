@@ -24,11 +24,40 @@ export function extractHeadings(content: string): TocHeading[] {
     return [];
   }
 
+  let fenceCharacter: '`' | '~' | null = null;
+  let fenceLength = 0;
+  const markdownOutsideFences = content
+    .split(/\r?\n/)
+    .filter((line) => {
+      if (fenceCharacter) {
+        const closingFence = line.match(/^ {0,3}(`+|~+)\s*$/);
+        if (
+          closingFence &&
+          closingFence[1][0] === fenceCharacter &&
+          closingFence[1].length >= fenceLength
+        ) {
+          fenceCharacter = null;
+          fenceLength = 0;
+        }
+        return false;
+      }
+
+      const openingFence = line.match(/^ {0,3}(`{3,}|~{3,})/);
+      if (openingFence) {
+        fenceCharacter = openingFence[1][0] === '~' ? '~' : '`';
+        fenceLength = openingFence[1].length;
+        return false;
+      }
+
+      return true;
+    })
+    .join('\n');
+
   const headingRegex = /^(#{2,3})\s+(.+)$/gm;
   const headings: TocHeading[] = [];
   let match;
 
-  while ((match = headingRegex.exec(content)) !== null) {
+  while ((match = headingRegex.exec(markdownOutsideFences)) !== null) {
     const hashes = match[1];
     const rawText = match[2].trim();
 

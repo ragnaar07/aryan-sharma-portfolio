@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 
 import { getSiteUrl } from '@/config/Meta';
 import { getPublishedBlogPostsAsync } from '@/lib/blog';
-import { getPublishedProjectCaseStudies } from '@/lib/project';
+import { getPublishedProjects } from '@/lib/projects';
 
 export const revalidate = 3600;
 
@@ -88,16 +88,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     };
   });
 
-  // 3. Published Project Case Studies (drafts strictly excluded)
-  const caseStudies = getPublishedProjectCaseStudies();
-  const projectRoutes: MetadataRoute.Sitemap = caseStudies.map((study) => {
-    return {
-      url: `${siteUrl}/projects/${study.slug}`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.7,
-    };
-  });
+  // 3. Published projects (drafts and archived projects are excluded)
+  const publishedProjects = await getPublishedProjects();
+  const projectRoutes: MetadataRoute.Sitemap = publishedProjects.map(
+    (project) => {
+      return {
+        url: `${siteUrl}/projects/${project.slug}`,
+        lastModified: new Date(
+          project.updatedAt ?? project.publishedAt ?? Date.now(),
+        ),
+        changeFrequency: 'monthly',
+        priority: 0.7,
+      };
+    },
+  );
 
   // Note: /admin, /admin/login, and all draft posts are strictly excluded
   return [...staticRoutes, ...blogRoutes, ...projectRoutes];

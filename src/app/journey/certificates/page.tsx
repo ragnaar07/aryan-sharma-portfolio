@@ -24,7 +24,7 @@ export default function CertificatesPage() {
     if (fs.existsSync(certDir)) {
       const files = fs.readdirSync(certDir);
       discovered = files
-        .filter((f) => /\.(png|jpe?g|webp|avif)$/i.test(f))
+        .filter((f) => /\.(svg|png|jpe?g|webp|avif)$/i.test(f))
         .map((f) => ({
           file: `/certificates/${f}`,
           title: undefined,

@@ -7,6 +7,41 @@ import { preprocessMdxContent } from '@/lib/mdx-sanitize';
 import type { Post } from '@/types/blog';
 
 export const REDIS_POSTS_HASH_KEY = 'portfolio:blog:posts';
+const REDIS_POSTS_METADATA_HASH_KEY = 'portfolio:blog:post-metadata';
+const REDIS_POSTS_METADATA_VERSION_KEY = 'portfolio:blog:post-metadata-version';
+const REDIS_POSTS_METADATA_VERSION = '1';
+
+export type RedisPostMetadata = Omit<Post, 'content'>;
+
+const LIST_POST_METADATA_SCRIPT = `
+if redis.call('GET', KEYS[3]) ~= ARGV[1] then
+  local records = redis.call('HGETALL', KEYS[1])
+  for index = 1, #records, 2 do
+    local field = records[index]
+    local ok, post = pcall(cjson.decode, records[index + 1])
+    if ok and type(post) == 'table' and post.title then
+      local metadata = {
+        slug = post.slug or field,
+        title = post.title,
+        excerpt = post.description or '',
+        category = post.category or 'Engineering',
+        tags = post.tags or {},
+        date = post.date,
+        isPublished = post.isPublished
+      }
+      metadata.coverImage = post.coverImage or post.image
+      metadata.image = post.image or post.coverImage
+      metadata.youtubeId = post.youtubeId
+      metadata.publishDate = post.publishDate
+      metadata.updatedDate = post.updatedDate
+      metadata.readingTime = post.readingTime
+      redis.call('HSET', KEYS[2], field, cjson.encode(metadata))
+    end
+  end
+  redis.call('SET', KEYS[3], ARGV[1])
+end
+return redis.call('HGETALL', KEYS[2])
+`;
 
 let redisInstance: Redis | null = null;
 
@@ -82,21 +117,28 @@ function parseRedisValue<T = unknown>(raw: unknown): T | null {
 /**
  * Normalizes a raw object/parsed record into a valid Post type with ISO strings and safe defaults.
  */
-export function normalizePost(raw: unknown): Post | null {
-  const parsed = parseRedisValue<Partial<Post>>(raw);
+export function normalizePostMetadata(raw: unknown): RedisPostMetadata | null {
+  const parsed = parseRedisValue<
+    Partial<Post> & {
+      excerpt?: unknown;
+    }
+  >(raw);
   if (!parsed || typeof parsed !== 'object') {
     return null;
   }
 
   const slug = normalizeSlug(parsed.slug);
   const title = typeof parsed.title === 'string' ? parsed.title.trim() : '';
-  const rawContent = typeof parsed.content === 'string' ? parsed.content : '';
-  const content = preprocessMdxContent(rawContent);
-
-  if (!slug || !title || !content) {
+  if (!slug || !title) {
     return null;
   }
 
+  const description =
+    typeof parsed.description === 'string'
+      ? parsed.description.trim()
+      : typeof parsed.excerpt === 'string'
+        ? parsed.excerpt.trim()
+        : '';
   const rawCover = parsed.coverImage || parsed.image;
   const coverImage =
     typeof rawCover === 'string' && rawCover.trim().length > 0
@@ -133,14 +175,12 @@ export function normalizePost(raw: unknown): Post | null {
     typeof parsed.readingTime === 'string' &&
     parsed.readingTime.trim().length > 0
       ? parsed.readingTime.trim()
-      : calculateReadingTime(content);
+      : undefined;
 
   return {
     slug,
     title,
-    description:
-      typeof parsed.description === 'string' ? parsed.description.trim() : '',
-    content,
+    description,
     coverImage,
     image: coverImage,
     category:
@@ -158,26 +198,57 @@ export function normalizePost(raw: unknown): Post | null {
 }
 
 /**
- * List all posts stored in Upstash Redis.
+ * Normalizes a complete post record, including its MDX body.
+ */
+export function normalizePost(raw: unknown): Post | null {
+  const parsed = parseRedisValue<Partial<Post>>(raw);
+  if (!parsed || typeof parsed.content !== 'string') {
+    return null;
+  }
+
+  const content = preprocessMdxContent(parsed.content);
+  if (!content) {
+    return null;
+  }
+
+  const metadata = normalizePostMetadata(parsed);
+  return metadata
+    ? {
+        ...metadata,
+        content,
+        readingTime: metadata.readingTime || calculateReadingTime(content),
+      }
+    : null;
+}
+
+/**
+ * List metadata for posts stored in Upstash Redis without transferring MDX bodies.
  * Returns an empty array if Redis is not configured or if an error occurs.
  */
-export async function listRedisPosts(): Promise<Post[]> {
+export async function listRedisPosts(): Promise<RedisPostMetadata[]> {
   try {
     const redis = getRedisClient();
     if (!redis) {
       return [];
     }
 
-    const records =
-      await redis.hgetall<Record<string, unknown>>(REDIS_POSTS_HASH_KEY);
-    if (!records) {
+    const records = await redis.eval<unknown[]>(
+      LIST_POST_METADATA_SCRIPT,
+      [
+        REDIS_POSTS_HASH_KEY,
+        REDIS_POSTS_METADATA_HASH_KEY,
+        REDIS_POSTS_METADATA_VERSION_KEY,
+      ],
+      [REDIS_POSTS_METADATA_VERSION],
+    );
+    if (!Array.isArray(records)) {
       return [];
     }
 
-    const posts: Post[] = [];
-    for (const value of Object.values(records)) {
+    const posts: RedisPostMetadata[] = [];
+    for (let index = 1; index < records.length; index += 2) {
       try {
-        const post = normalizePost(value);
+        const post = normalizePostMetadata(records[index]);
         if (post) {
           posts.push(post);
         }
@@ -261,9 +332,28 @@ export async function saveRedisPost(post: Post): Promise<void> {
   // Ensure updatedDate reflects current modification
   normalized.updatedDate = new Date().toISOString();
 
+  const metadata = {
+    slug: normalized.slug,
+    title: normalized.title,
+    excerpt: normalized.description,
+    coverImage: normalized.coverImage,
+    image: normalized.image,
+    category: normalized.category,
+    youtubeId: normalized.youtubeId,
+    tags: normalized.tags,
+    date: normalized.date,
+    publishDate: normalized.publishDate,
+    updatedDate: normalized.updatedDate,
+    isPublished: normalized.isPublished,
+    readingTime: normalized.readingTime,
+  };
+
   try {
     await redis.hset(REDIS_POSTS_HASH_KEY, {
       [normalized.slug]: JSON.stringify(normalized),
+    });
+    await redis.hset(REDIS_POSTS_METADATA_HASH_KEY, {
+      [normalized.slug]: JSON.stringify(metadata),
     });
   } catch (error) {
     console.error(
@@ -290,6 +380,10 @@ export async function deleteRedisPost(slug: string): Promise<boolean> {
     let deletedCount = await redis.hdel(REDIS_POSTS_HASH_KEY, normalizedSlug);
     if (deletedCount === 0 && slug !== normalizedSlug) {
       deletedCount = await redis.hdel(REDIS_POSTS_HASH_KEY, slug);
+    }
+    await redis.hdel(REDIS_POSTS_METADATA_HASH_KEY, normalizedSlug);
+    if (slug !== normalizedSlug) {
+      await redis.hdel(REDIS_POSTS_METADATA_HASH_KEY, slug);
     }
     return deletedCount > 0;
   } catch (error) {

@@ -80,6 +80,8 @@ Create a local `.env.local` file in the project root:
 ```env
 # Google Gemini API Key (Server-side assistant)
 GEMINI_API_KEY="your-gemini-api-key"
+GEMINI_MODEL="gemini-3.6-flash"
+GEMINI_FALLBACK_MODEL="gemini-3.5-flash-lite"
 NODE_ENV="development"
 
 # Site URLs

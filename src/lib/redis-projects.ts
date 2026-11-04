@@ -108,7 +108,9 @@ export async function getRedisProjectBySlug(
 export async function saveProjectRecord(project: ProjectRecord): Promise<void> {
   const redis = getRedisClient();
   if (!redis) {
-    return;
+    throw new Error(
+      'Upstash Redis is not configured. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN to save projects.',
+    );
   }
 
   const normalized = normalizeProjectRecord(project);
