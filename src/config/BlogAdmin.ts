@@ -25,7 +25,7 @@ export const BLOG_VALIDATION = {
     regex: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
   },
   content: {
-    maxPreviewCharacters: 100_000,
+    maxPreviewCharacters: 20_000,
     maxCharacters: 500_000, // ~500 KB MDX
   },
   coverImage: {

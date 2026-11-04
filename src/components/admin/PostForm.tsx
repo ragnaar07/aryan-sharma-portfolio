@@ -204,6 +204,10 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
   const mdxValidationRequestRef = useRef(0);
   const [previewNode, setPreviewNode] = useState<React.ReactNode | null>(null);
   const [isPreviewStale, setIsPreviewStale] = useState(false);
+  const contentSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const contentCountRef = useRef<HTMLSpanElement>(null);
 
   const draftStorageKey = `admin-blog-post-draft:${isEditing ? initialPost?.slug || 'unknown' : 'new'}`;
   const [draftReady, setDraftReady] = useState(false);
@@ -212,6 +216,7 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
     useState<PostDraftSnapshot | null>(null);
   const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
   const [draftError, setDraftError] = useState<string | null>(null);
+  const [draftRevision, setDraftRevision] = useState(0);
   const saveHandledRef = useRef(false);
 
   // Preview Mode: 'write' (editor only), 'split' (side-by-side on desktop), 'preview' (preview only)
@@ -290,7 +295,10 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
 
     const saveDraft = () => {
       try {
-        const snapshot = createPostDraftSnapshot(draftValues);
+        const snapshot = createPostDraftSnapshot({
+          ...draftValues,
+          content: editorTextareaRef.current?.value ?? contentValue,
+        });
         window.localStorage.setItem(draftStorageKey, JSON.stringify(snapshot));
         setDraftSavedAt(snapshot.savedAt);
         setDraftError(null);
@@ -310,7 +318,23 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
       window.removeEventListener('beforeunload', saveDraft);
       document.removeEventListener('visibilitychange', saveWhenHidden);
     };
-  }, [draftReady, draftStorageKey, draftValues, isDraftDirty]);
+  }, [
+    contentValue,
+    draftReady,
+    draftRevision,
+    draftStorageKey,
+    draftValues,
+    isDraftDirty,
+  ]);
+
+  useEffect(
+    () => () => {
+      if (contentSyncTimerRef.current) {
+        clearTimeout(contentSyncTimerRef.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!state.success || saveHandledRef.current) return;
@@ -433,10 +457,34 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
   // Sync state if form action returns updated values after validation failure
   useEffect(() => {
     if (state.values) {
+      if (contentSyncTimerRef.current) {
+        clearTimeout(contentSyncTimerRef.current);
+      }
       setSelectedCategory(state.values.category);
       setIsPublished(Boolean(state.values.isPublished));
       setSlugValue(state.values.slug);
-      setContentValue(state.values.content);
+      if (editorTextareaRef.current) {
+        editorTextareaRef.current.value = state.values.content;
+      }
+      if (contentCountRef.current) {
+        contentCountRef.current.textContent =
+          state.values.content.length.toLocaleString();
+      }
+      if (
+        state.values.content.length <=
+        BLOG_VALIDATION.content.maxPreviewCharacters
+      ) {
+        setContentValue(state.values.content);
+      }
+      if (
+        state.values.content.length >
+        BLOG_VALIDATION.content.maxPreviewCharacters
+      ) {
+        setMdxValidationWarning(
+          `Live preview is paused for content over ${BLOG_VALIDATION.content.maxPreviewCharacters.toLocaleString()} characters. Saving will still validate the full post.`,
+        );
+        setPreviewNode(null);
+      }
       setTitleValue(state.values.title);
       setDescriptionValue(state.values.description);
       setTagsValue(state.values.tags);
@@ -447,6 +495,9 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
 
   const restoreDraft = () => {
     if (!recoveredDraft) return;
+    if (contentSyncTimerRef.current) {
+      clearTimeout(contentSyncTimerRef.current);
+    }
     setTitleValue(recoveredDraft.values.title);
     setSlugValue(recoveredDraft.values.slug);
     setDescriptionValue(recoveredDraft.values.description);
@@ -454,7 +505,28 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
     setCoverImage(recoveredDraft.values.coverImage);
     setTagsValue(recoveredDraft.values.tags);
     setYoutubeUrlValue(recoveredDraft.values.youtubeUrl);
-    setContentValue(recoveredDraft.values.content);
+    if (editorTextareaRef.current) {
+      editorTextareaRef.current.value = recoveredDraft.values.content;
+    }
+    if (contentCountRef.current) {
+      contentCountRef.current.textContent =
+        recoveredDraft.values.content.length.toLocaleString();
+    }
+    if (
+      recoveredDraft.values.content.length <=
+      BLOG_VALIDATION.content.maxPreviewCharacters
+    ) {
+      setContentValue(recoveredDraft.values.content);
+    }
+    if (
+      recoveredDraft.values.content.length >
+      BLOG_VALIDATION.content.maxPreviewCharacters
+    ) {
+      setMdxValidationWarning(
+        `Live preview is paused for content over ${BLOG_VALIDATION.content.maxPreviewCharacters.toLocaleString()} characters. Saving will still validate the full post.`,
+      );
+      setPreviewNode(null);
+    }
     setIsPublished(recoveredDraft.values.isPublished);
     setIsDraftDirty(true);
     setDraftSavedAt(recoveredDraft.savedAt);
@@ -481,7 +553,9 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
       mdxErrorLocation || (savedErrorLine ? Number(savedErrorLine) : null);
     if (!textarea || !errorLine) return;
 
-    const lines = contentValue.split('\n');
+    const lines = (editorTextareaRef.current?.value || contentValue).split(
+      '\n',
+    );
     const lineIndex = Math.min(Math.max(errorLine - 1, 0), lines.length - 1);
     const start =
       lines.slice(0, lineIndex).join('\n').length + (lineIndex ? 1 : 0);
@@ -578,7 +652,19 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
   };
 
   return (
-    <form action={formAction} className="space-y-8">
+    <form
+      action={formAction}
+      className="space-y-8"
+      onSubmit={() => {
+        if (contentSyncTimerRef.current) {
+          clearTimeout(contentSyncTimerRef.current);
+        }
+        const content = editorTextareaRef.current?.value ?? '';
+        if (content.length <= BLOG_VALIDATION.content.maxPreviewCharacters) {
+          setContentValue(content);
+        }
+      }}
+    >
       {/* Top Action Bar (Sticky beneath AdminHeader) */}
       <div className="bg-card/95 border-border sticky top-16 z-30 flex flex-col gap-3 rounded-xl border p-3 shadow-sm backdrop-blur-md transition-all sm:flex-row sm:items-center sm:justify-between sm:p-4">
         <div className="flex items-center gap-3">
@@ -1179,8 +1265,11 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
             </CardDescription>
           </div>
           <Badge variant="outline" className="text-xs font-normal">
-            {contentValue.length.toLocaleString()} /{' '}
-            {BLOG_VALIDATION.content.maxCharacters.toLocaleString()} characters
+            <span ref={contentCountRef}>
+              {currentValues.content.length.toLocaleString()}
+            </span>{' '}
+            / {BLOG_VALIDATION.content.maxCharacters.toLocaleString()}{' '}
+            characters
           </Badge>
         </CardHeader>
         <CardContent className="min-h-0 flex-1 p-4 pt-4 sm:p-6">
@@ -1200,87 +1289,118 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
             }`}
           >
             {/* Editor Pane (visible in 'write' or 'split' mode) */}
-            {(previewMode === 'write' || previewMode === 'split') && (
-              <div className="border-border bg-card flex h-[70dvh] min-h-0 min-h-[380px] flex-col overflow-hidden rounded-lg border lg:h-[calc(100dvh-15rem)] lg:min-h-[450px]">
-                {/* Pinned Header */}
-                <div className="bg-card border-border/60 sticky top-0 z-10 flex shrink-0 flex-col gap-1.5 border-b p-3">
-                  <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-                    Editor (MDX / Markdown)
-                  </span>
-                  <p className="text-muted-foreground text-xs leading-normal">
-                    <span className="text-foreground font-medium">
-                      Syntax guide:
-                    </span>{' '}
-                    use{' '}
-                    <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
-                      $...$
-                    </code>{' '}
-                    /{' '}
-                    <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
-                      $$...$$
-                    </code>{' '}
-                    for math, backticks for code, avoid raw{' '}
-                    <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
-                      {'{\u00A0}'}
-                    </code>{' '}
-                    and{' '}
-                    <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
-                      &lt;
-                    </code>{' '}
-                    in plain text.
-                  </p>
-                </div>
-
-                {/* Textarea Container */}
-                <div className="relative min-h-0 flex-1">
-                  <Textarea
-                    ref={editorTextareaRef}
-                    id="content"
-                    name="content"
-                    value={contentValue}
-                    maxLength={BLOG_VALIDATION.content.maxCharacters}
-                    onChange={(e) => {
-                      setContentValue(e.target.value);
-                      setContentInputError(null);
-                      setIsDraftDirty(true);
-                    }}
-                    onPaste={(event) => {
-                      const pastedText =
-                        event.clipboardData.getData('text/plain');
-                      const textarea = event.currentTarget;
-                      const selectedLength =
-                        textarea.selectionEnd - textarea.selectionStart;
-                      const nextLength =
-                        contentValue.length -
-                        selectedLength +
-                        pastedText.length;
-
-                      if (nextLength > BLOG_VALIDATION.content.maxCharacters) {
-                        event.preventDefault();
-                        setContentInputError(
-                          `This paste exceeds the ${BLOG_VALIDATION.content.maxCharacters.toLocaleString()} character limit. Shorten the text or paste a smaller section.`,
-                        );
-                      }
-                    }}
-                    placeholder={adminBlogLabels.form.contentPlaceholder}
-                    disabled={isPending}
-                    data-lenis-prevent
-                    className="[field-sizing:normal] h-full w-full resize-none overflow-y-auto overscroll-contain rounded-none border-0 bg-transparent p-4 font-mono text-sm leading-relaxed focus-visible:ring-0 focus-visible:ring-offset-0"
-                    aria-invalid={Boolean(
-                      state.errors?.content || contentInputError,
-                    )}
-                  />
-                </div>
-                {contentInputError && (
-                  <p
-                    className="text-destructive border-border border-t px-3 py-2 text-xs"
-                    role="alert"
-                  >
-                    {contentInputError}
-                  </p>
-                )}
+            <div
+              className={`${previewMode === 'preview' ? 'hidden' : ''}border-border bg-card flex h-[70dvh] min-h-0 min-h-[380px] flex-col overflow-hidden rounded-lg border lg:h-[calc(100dvh-15rem)] lg:min-h-[450px]`}
+            >
+              {/* Pinned Header */}
+              <div className="bg-card border-border/60 sticky top-0 z-10 flex shrink-0 flex-col gap-1.5 border-b p-3">
+                <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+                  Editor (MDX / Markdown)
+                </span>
+                <p className="text-muted-foreground text-xs leading-normal">
+                  <span className="text-foreground font-medium">
+                    Syntax guide:
+                  </span>{' '}
+                  use{' '}
+                  <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
+                    $...$
+                  </code>{' '}
+                  /{' '}
+                  <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
+                    $$...$$
+                  </code>{' '}
+                  for math, backticks for code, avoid raw{' '}
+                  <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
+                    {'{\u00A0}'}
+                  </code>{' '}
+                  and{' '}
+                  <code className="bg-muted rounded px-1 py-0.5 font-mono text-[11px]">
+                    &lt;
+                  </code>{' '}
+                  in plain text.
+                </p>
               </div>
-            )}
+
+              {/* Textarea Container */}
+              <div className="relative min-h-0 flex-1">
+                <Textarea
+                  ref={editorTextareaRef}
+                  id="content"
+                  name="content"
+                  defaultValue={currentValues.content}
+                  maxLength={BLOG_VALIDATION.content.maxCharacters}
+                  onChange={(e) => {
+                    const content = e.currentTarget.value;
+                    if (contentCountRef.current) {
+                      contentCountRef.current.textContent =
+                        content.length.toLocaleString();
+                    }
+                    setContentInputError(null);
+                    setIsDraftDirty(true);
+                    mdxValidationRequestRef.current += 1;
+                    if (contentSyncTimerRef.current) {
+                      clearTimeout(contentSyncTimerRef.current);
+                    }
+
+                    if (
+                      content.length >
+                      BLOG_VALIDATION.content.maxPreviewCharacters
+                    ) {
+                      setMdxSyntaxError(null);
+                      setMdxErrorLocation(null);
+                      setMdxValidationWarning(
+                        `Live preview is paused for content over ${BLOG_VALIDATION.content.maxPreviewCharacters.toLocaleString()} characters. Saving will still validate the full post.`,
+                      );
+                      setPreviewNode(null);
+                      setIsPreviewStale(false);
+                      contentSyncTimerRef.current = setTimeout(() => {
+                        setDraftRevision((revision) => revision + 1);
+                      }, 350);
+                      return;
+                    }
+
+                    setMdxValidationWarning(null);
+                    setIsPreviewStale(true);
+                    contentSyncTimerRef.current = setTimeout(() => {
+                      setContentValue(content);
+                    }, 350);
+                  }}
+                  onPaste={(event) => {
+                    const pastedText =
+                      event.clipboardData.getData('text/plain');
+                    const textarea = event.currentTarget;
+                    const selectedLength =
+                      textarea.selectionEnd - textarea.selectionStart;
+                    const nextLength =
+                      textarea.value.length -
+                      selectedLength +
+                      pastedText.length;
+
+                    if (nextLength > BLOG_VALIDATION.content.maxCharacters) {
+                      event.preventDefault();
+                      setContentInputError(
+                        `This paste exceeds the ${BLOG_VALIDATION.content.maxCharacters.toLocaleString()} character limit. Shorten the text or paste a smaller section.`,
+                      );
+                    }
+                  }}
+                  placeholder={adminBlogLabels.form.contentPlaceholder}
+                  disabled={isPending}
+                  data-lenis-prevent
+                  className="[field-sizing:normal] h-full w-full resize-none overflow-y-auto overscroll-contain rounded-none border-0 bg-transparent p-4 font-mono text-sm leading-relaxed focus-visible:ring-0 focus-visible:ring-offset-0"
+                  aria-invalid={Boolean(
+                    state.errors?.content || contentInputError,
+                  )}
+                />
+              </div>
+              {contentInputError && (
+                <p
+                  className="text-destructive border-border border-t px-3 py-2 text-xs"
+                  role="alert"
+                >
+                  {contentInputError}
+                </p>
+              )}
+            </div>
 
             {/* Live Preview Pane (visible in 'preview' or 'split' mode) */}
             {(previewMode === 'preview' || previewMode === 'split') && (
@@ -1369,6 +1489,14 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                     <article className="prose prose-neutral dark:prose-invert text-foreground/90 max-w-none">
                       {previewNode}
                     </article>
+                  ) : mdxValidationWarning || mdxSyntaxError ? (
+                    <div className="text-muted-foreground flex h-full min-h-[300px] flex-col items-center justify-center space-y-2 text-center text-sm">
+                      <Eye className="size-8 opacity-40" />
+                      <p>
+                        {mdxValidationWarning ||
+                          'Fix the MDX syntax error to see the preview.'}
+                      </p>
+                    </div>
                   ) : contentValue.trim() ? (
                     <div className="text-muted-foreground flex h-full min-h-[300px] flex-col items-center justify-center space-y-2 text-center text-sm">
                       <Loader2 className="size-6 animate-spin" />
