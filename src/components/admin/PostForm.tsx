@@ -204,6 +204,10 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
   const mdxValidationRequestRef = useRef(0);
   const [previewNode, setPreviewNode] = useState<React.ReactNode | null>(null);
   const [isPreviewStale, setIsPreviewStale] = useState(false);
+  const [isFullPreviewLoading, setIsFullPreviewLoading] = useState(false);
+  const [hasLargeContent, setHasLargeContent] = useState(
+    currentValues.content.length > BLOG_VALIDATION.content.maxPreviewCharacters,
+  );
   const contentSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -399,7 +403,7 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
     if (contentValue.length > BLOG_VALIDATION.content.maxPreviewCharacters) {
       setPreviewNode(null);
       setMdxValidationWarning(
-        `Live preview is paused for content over ${BLOG_VALIDATION.content.maxPreviewCharacters.toLocaleString()} characters. Saving will still validate the full post.`,
+        `Live preview is paused over ${BLOG_VALIDATION.content.maxPreviewCharacters.toLocaleString()} characters. Use “Preview full article” to render it on demand; saving still validates the full post.`,
       );
       setIsPreviewStale(false);
       return;
@@ -481,10 +485,14 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
         BLOG_VALIDATION.content.maxPreviewCharacters
       ) {
         setMdxValidationWarning(
-          `Live preview is paused for content over ${BLOG_VALIDATION.content.maxPreviewCharacters.toLocaleString()} characters. Saving will still validate the full post.`,
+          `Live preview is paused over ${BLOG_VALIDATION.content.maxPreviewCharacters.toLocaleString()} characters. Use “Preview full article” to render it on demand; saving still validates the full post.`,
         );
         setPreviewNode(null);
       }
+      setHasLargeContent(
+        state.values.content.length >
+          BLOG_VALIDATION.content.maxPreviewCharacters,
+      );
       setTitleValue(state.values.title);
       setDescriptionValue(state.values.description);
       setTagsValue(state.values.tags);
@@ -523,10 +531,14 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
       BLOG_VALIDATION.content.maxPreviewCharacters
     ) {
       setMdxValidationWarning(
-        `Live preview is paused for content over ${BLOG_VALIDATION.content.maxPreviewCharacters.toLocaleString()} characters. Saving will still validate the full post.`,
+        `Live preview is paused over ${BLOG_VALIDATION.content.maxPreviewCharacters.toLocaleString()} characters. Use “Preview full article” to render it on demand; saving still validates the full post.`,
       );
       setPreviewNode(null);
     }
+    setHasLargeContent(
+      recoveredDraft.values.content.length >
+        BLOG_VALIDATION.content.maxPreviewCharacters,
+    );
     setIsPublished(recoveredDraft.values.isPublished);
     setIsDraftDirty(true);
     setDraftSavedAt(recoveredDraft.savedAt);
@@ -648,6 +660,53 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       handleCoverUpload(files[0]);
+    }
+  };
+
+  const previewFullArticle = async () => {
+    const content = editorTextareaRef.current?.value ?? '';
+    const requestId = ++mdxValidationRequestRef.current;
+    setIsFullPreviewLoading(true);
+    setIsPreviewStale(true);
+    setMdxSyntaxError(null);
+    setMdxValidationWarning(null);
+    setMdxErrorLocation(null);
+
+    try {
+      const result = await renderMdxPreviewAction(content, true);
+      if (requestId !== mdxValidationRequestRef.current) return;
+
+      if (!result.valid) {
+        const location =
+          result.line && result.column
+            ? `Line ${result.line}, Column ${result.column}: `
+            : result.line
+              ? `Line ${result.line}: `
+              : '';
+        const excerpt = result.sourceExcerpt
+          ? `\n> ${result.sourceExcerpt}`
+          : '';
+        setMdxSyntaxError(
+          `${location}${result.reason || result.error || 'Syntax error'}${excerpt}`,
+        );
+        setMdxErrorLocation(result.line || null);
+        setPreviewNode(null);
+        return;
+      }
+
+      setPreviewNode(result.preview ?? null);
+    } catch (error: unknown) {
+      if (requestId !== mdxValidationRequestRef.current) return;
+      const message = error instanceof Error ? error.message : String(error);
+      setMdxValidationWarning(
+        `Full preview failed: ${message || 'The server could not render this article.'}`,
+      );
+      setPreviewNode(null);
+    } finally {
+      if (requestId === mdxValidationRequestRef.current) {
+        setIsFullPreviewLoading(false);
+        setIsPreviewStale(false);
+      }
     }
   };
 
@@ -1338,10 +1397,15 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                     setContentInputError(null);
                     setIsDraftDirty(true);
                     mdxValidationRequestRef.current += 1;
+                    setIsFullPreviewLoading(false);
                     if (contentSyncTimerRef.current) {
                       clearTimeout(contentSyncTimerRef.current);
                     }
 
+                    setHasLargeContent(
+                      content.length >
+                        BLOG_VALIDATION.content.maxPreviewCharacters,
+                    );
                     if (
                       content.length >
                       BLOG_VALIDATION.content.maxPreviewCharacters
@@ -1349,7 +1413,7 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                       setMdxSyntaxError(null);
                       setMdxErrorLocation(null);
                       setMdxValidationWarning(
-                        `Live preview is paused for content over ${BLOG_VALIDATION.content.maxPreviewCharacters.toLocaleString()} characters. Saving will still validate the full post.`,
+                        `Live preview is paused over ${BLOG_VALIDATION.content.maxPreviewCharacters.toLocaleString()} characters. Use “Preview full article” to render it on demand; saving still validates the full post.`,
                       );
                       setPreviewNode(null);
                       setIsPreviewStale(false);
@@ -1471,6 +1535,25 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                       </AlertDescription>
                     </Alert>
                   )}
+                  {hasLargeContent && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 text-xs"
+                      disabled={isFullPreviewLoading}
+                      onClick={previewFullArticle}
+                    >
+                      {isFullPreviewLoading ? (
+                        <>
+                          <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                          Rendering full article…
+                        </>
+                      ) : (
+                        'Preview full article'
+                      )}
+                    </Button>
+                  )}
                   {isPreviewStale && previewNode !== null && (
                     <p className="text-muted-foreground text-xs">
                       Showing the last valid preview while the current content
@@ -1485,7 +1568,12 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                   data-lenis-prevent
                   className="bg-muted/10 min-h-0 flex-1 overflow-y-auto overscroll-contain p-6"
                 >
-                  {previewNode !== null ? (
+                  {isFullPreviewLoading ? (
+                    <div className="text-muted-foreground flex h-full min-h-[300px] flex-col items-center justify-center space-y-2 text-center text-sm">
+                      <Loader2 className="size-6 animate-spin" />
+                      <p>Rendering the full article…</p>
+                    </div>
+                  ) : previewNode !== null ? (
                     <article className="prose prose-neutral dark:prose-invert text-foreground/90 max-w-none">
                       {previewNode}
                     </article>

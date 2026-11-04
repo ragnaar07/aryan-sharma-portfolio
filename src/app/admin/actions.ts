@@ -180,17 +180,19 @@ export async function savePostAction(
 
 export async function renderMdxPreviewAction(
   content: string,
+  fullDocument = false,
 ): Promise<MdxPreviewResult> {
   await requireAdmin({ redirectOnFail: false });
 
-  if (
-    typeof content !== 'string' ||
-    content.length > BLOG_VALIDATION.content.maxPreviewCharacters
-  ) {
+  const maxCharacters = fullDocument
+    ? BLOG_VALIDATION.content.maxCharacters
+    : BLOG_VALIDATION.content.maxPreviewCharacters;
+
+  if (typeof content !== 'string' || content.length > maxCharacters) {
     return {
       valid: false,
-      error: 'Content is too large for live preview.',
-      reason: `Live preview is limited to ${BLOG_VALIDATION.content.maxPreviewCharacters.toLocaleString()} characters. Save the post to validate larger content.`,
+      error: 'Content is too large to preview.',
+      reason: `Preview is limited to ${maxCharacters.toLocaleString()} characters.`,
     };
   }
 
