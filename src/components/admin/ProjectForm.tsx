@@ -140,11 +140,13 @@ export function ProjectForm({
         </div>
       </div>
 
-      {state.message && !state.success && (
+      {(state.error || (state.message && !state.success)) && (
         <Alert variant="destructive">
           <AlertCircle className="size-4" />
-          <AlertTitle>Project validation failed</AlertTitle>
-          <AlertDescription>{state.message}</AlertDescription>
+          <AlertTitle>
+            {state.error ? 'Project save failed' : 'Project validation failed'}
+          </AlertTitle>
+          <AlertDescription>{state.error || state.message}</AlertDescription>
         </Alert>
       )}
 

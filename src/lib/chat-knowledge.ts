@@ -108,7 +108,11 @@ function getRelevantProjects(message: string) {
 
 export function getPortfolioKnowledgeContext() {
   const skills = heroConfig.skills.map((skill) => skill.name).join(', ');
-  const education = `${about.education.degree} from ${about.education.institution} (${about.education.startYear} - ${about.education.graduationYear})`;
+  const education = [
+    `${about.education.degree} from ${about.education.institution} (${about.education.startYear} - ${about.education.graduationYear})`,
+    `Schooling: ${about.education.schooling}`,
+    `Awards: ${about.education.awards}`,
+  ].join('. ');
   const experienceText = experiences
     .map(
       (experience) =>
@@ -368,6 +372,9 @@ function getPortfolioFallbackAnswer(message: string) {
   if (
     includesAny(lower, [
       'education',
+      'study',
+      'studied',
+      'where did',
       'college',
       'university',
       'degree',
@@ -384,9 +391,9 @@ function getPortfolioFallbackAnswer(message: string) {
     ])
   ) {
     return [
-      `Aryan graduated with a **${about.education.degree}** from **${about.education.institution}** (2021 - 2025).`,
-      `- **Schooling**: DAV Public School Lathiani (Class X: 90.8%, Class XII: 95.6%).`,
-      `- **Awards**: Winner at the Children's Science Congress Fair.`,
+      `Aryan graduated with a **${about.education.degree}** from **${about.education.institution}** (${about.education.startYear} - ${about.education.graduationYear}).`,
+      `- **Schooling**: ${about.education.schooling}.`,
+      `- **Awards**: ${about.education.awards}.`,
     ].join('\n');
   }
 
@@ -396,6 +403,9 @@ function getPortfolioFallbackAnswer(message: string) {
       'hobby',
       'interest',
       'interests',
+      'enjoy',
+      'outside engineering',
+      'outside of engineering',
       'outside work',
       'free time',
       'himachal',
@@ -442,6 +452,8 @@ function getPortfolioFallbackAnswer(message: string) {
     includesAny(lower, [
       'certificate',
       'certification',
+      'award',
+      'awards',
       'achievement',
       'course',
       'bootcamp',
@@ -454,7 +466,11 @@ function getPortfolioFallbackAnswer(message: string) {
       )
       .join('\n');
 
-    return `${about.name}'s certificates and achievements include:\n${certificateList}`;
+    return [
+      `${about.name}'s certificates and achievements include:`,
+      certificateList,
+      `- **Award**: ${about.education.awards}.`,
+    ].join('\n');
   }
 
   if (includesAny(lower, ['resume', 'cv'])) {
@@ -541,6 +557,10 @@ export function hasPortfolioIntent(message: string) {
     'trainee',
     'work history',
     'education',
+    'study',
+    'studied',
+    'school',
+    'schooling',
     'college',
     'university',
     'degree',
@@ -566,6 +586,9 @@ export function hasPortfolioIntent(message: string) {
     'hobby',
     'interest',
     'interests',
+    'enjoy',
+    'outside engineering',
+    'outside of engineering',
     'outside work',
     'free time',
     'himachal',
@@ -597,6 +620,8 @@ export function hasPortfolioIntent(message: string) {
     'solo leveling',
     'certificate',
     'certification',
+    'award',
+    'awards',
     'achievement',
     'course',
     'bootcamp',

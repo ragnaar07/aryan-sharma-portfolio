@@ -1,27 +1,8 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["src/**/*.{ts,tsx,js,jsx}"],
+  "entry": ["src/app/**/*.{ts,tsx,js,jsx}", "scripts/verify-layout-scroll.ts"],
   "project": ["**/*.{js,cjs,mjs,jsx,ts,cts,mts,tsx}!"],
-  "ignore": ["public/oneko/oneko.js", ".agents/**", "scripts/**"],
-  "ignoreDependencies": [
-    "tsx",
-    "@mdx-js/loader",
-    "@mdx-js/react",
-    "@next/mdx",
-    "@types/mdx",
-    "date-fns",
-    "motion",
-    "recharts",
-    "rehype-stringify",
-    "remark-frontmatter",
-    "shiki",
-    "@tailwindcss/typography",
-    "eslint-config-next",
-    "tailwindcss",
-    "tw-animate-css",
-    "postcss",
-    "playwright"
-  ],
+  "ignore": ["public/oneko/oneko.js", ".agents/**"],
   "ignoreExportsUsedInFile": {
     "interface": true,
     "type": true

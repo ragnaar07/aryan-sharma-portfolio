@@ -282,6 +282,7 @@ export async function saveProjectAction(
 ): Promise<{
   success: boolean;
   message?: string;
+  error?: string;
   errors?: Record<string, string[]>;
 }> {
   await requireAdmin({ redirectOnFail: false });
@@ -366,11 +367,22 @@ export async function saveProjectAction(
     };
   }
 
-  await saveProjectRecord(projectRecord);
-  revalidatePath('/projects');
-  revalidatePath('/');
-  revalidatePath('/admin/projects');
-  revalidatePath(`/projects/${cleanSlug}`);
+  try {
+    await saveProjectRecord(projectRecord);
+    revalidatePath('/projects');
+    revalidatePath('/');
+    revalidatePath('/admin/projects');
+    revalidatePath(`/projects/${cleanSlug}`);
+  } catch (error) {
+    console.error('[actions] Error saving project:', error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : 'An unknown error occurred while saving the project.',
+    };
+  }
 
   return {
     success: true,

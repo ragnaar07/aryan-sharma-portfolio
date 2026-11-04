@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { generateSystemPrompt } from '../src/config/ChatPrompt';
+import {
+  chatSuggestions,
+  generateSystemPrompt,
+} from '../src/config/ChatPrompt';
 import {
   getPortfolioFallback,
+  getPortfolioKnowledgeContext,
   hasPortfolioIntent,
 } from '../src/lib/chat-knowledge';
 import { extractGeminiTextChunk } from '../src/lib/chat-response';
@@ -59,5 +63,39 @@ describe('Gemini streaming response parsing', () => {
     expect(answer).toContain('VLSI');
     expect(answer).toContain('yoga');
     expect(answer).toContain('Solo Leveling');
+  });
+
+  it('answers every suggested question with a specific portfolio response', () => {
+    for (const question of chatSuggestions) {
+      const answer = getPortfolioFallback(question);
+
+      expect(hasPortfolioIntent(question), question).toBe(true);
+      expect(answer, question).not.toContain(
+        'The portfolio does not list a specific answer to that question.',
+      );
+    }
+  });
+
+  it('answers where Aryan studied with schooling and award details', () => {
+    const answer = getPortfolioFallback('Where did Aryan study?');
+    const knowledgeContext = getPortfolioKnowledgeContext();
+
+    expect(hasPortfolioIntent('Where did Aryan study?')).toBe(true);
+    expect(answer).toContain('NIT Hamirpur');
+    expect(answer).toContain('DAV Public School Lathiani');
+    expect(answer).toContain('Children Science Congress Fair Winner');
+    expect(knowledgeContext).toContain('DAV Public School Lathiani');
+    expect(knowledgeContext).toContain('Children Science Congress Fair Winner');
+    expect(hasPortfolioIntent('What awards has Aryan received?')).toBe(true);
+    expect(getPortfolioFallback('What awards has Aryan received?')).toContain(
+      'Children Science Congress Fair Winner',
+    );
+  });
+
+  it('recognizes questions about interests outside engineering', () => {
+    const question = 'What do you enjoy outside engineering?';
+
+    expect(hasPortfolioIntent(question)).toBe(true);
+    expect(getPortfolioFallback(question)).toContain('Trekking & adventure');
   });
 });

@@ -62,9 +62,9 @@ export function ProjectCard({ project }: ProjectCardProps) {
                 <button
                   type="button"
                   aria-label={`Play ${project.title} video`}
-                  className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/20 opacity-0 transition-opacity duration-300 group-hover:opacity-100 hover:backdrop-blur-xs"
+                  className="absolute top-3 right-3 z-10 flex size-11 cursor-pointer items-center justify-center rounded-full bg-black/50 text-white opacity-0 shadow-md backdrop-blur-sm transition-opacity duration-300 group-hover:opacity-100 focus-visible:opacity-100"
                 >
-                  <span className="flex size-16 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm transition-colors duration-200 hover:bg-white/30">
+                  <span className="flex size-full items-center justify-center">
                     <PlayCircle />
                   </span>
                 </button>

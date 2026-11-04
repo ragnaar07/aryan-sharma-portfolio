@@ -27,11 +27,6 @@ export function middleware(req: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Convenience redirect: send logged-in admin directly to /admin
-  if (isLoginPage && hasSessionCookie) {
-    return NextResponse.redirect(new URL('/admin', nextUrl.origin));
-  }
-
   return NextResponse.next();
 }
 

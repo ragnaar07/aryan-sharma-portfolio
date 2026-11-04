@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import 'server-only';
 
 import { requireAdmin } from '@/lib/auth-guard';
@@ -14,6 +15,7 @@ import {
   normalizeSlug,
 } from '@/lib/blog-validation';
 import {
+  type RedisPostMetadata,
   deleteRedisPost,
   getRedisPostBySlug,
   listRedisPosts,
@@ -40,8 +42,31 @@ export { extractCoverId, isValidCoverImage, normalizeSlug };
  * When slugs collide, Redis wins.
  * Returns posts sorted by date descending (newest first).
  */
-export function mergePosts(redisPosts: Post[], filePosts: Post[]): Post[] {
-  const map = new Map<string, Post>();
+export type BlogPostListItem = Omit<Post, 'content'>;
+
+function postToListItem(post: Post): BlogPostListItem {
+  return {
+    slug: post.slug,
+    title: post.title,
+    description: post.description,
+    coverImage: post.coverImage,
+    image: post.image,
+    category: post.category,
+    youtubeId: post.youtubeId,
+    tags: post.tags,
+    date: post.date,
+    publishDate: post.publishDate,
+    updatedDate: post.updatedDate,
+    isPublished: post.isPublished,
+    readingTime: post.readingTime,
+  };
+}
+
+export function mergePosts(
+  redisPosts: BlogPostListItem[],
+  filePosts: BlogPostListItem[],
+): BlogPostListItem[] {
+  const map = new Map<string, BlogPostListItem>();
 
   // Insert file posts first
   for (const post of filePosts) {
@@ -61,7 +86,7 @@ export function mergePosts(redisPosts: Post[], filePosts: Post[]): Post[] {
 /**
  * Converts a Post into a BlogPostPreview.
  */
-function postToPreview(post: Post): BlogPostPreview {
+function postToPreview(post: BlogPostListItem): BlogPostPreview {
   const cover = post.coverImage || post.image || undefined;
   return {
     slug: post.slug,
@@ -77,7 +102,7 @@ function postToPreview(post: Post): BlogPostPreview {
       publishDate: post.publishDate || post.date,
       updatedDate: post.updatedDate || post.date,
       isPublished: post.isPublished,
-      readingTime: post.readingTime || calculateReadingTime(post.content),
+      readingTime: post.readingTime || calculateReadingTime(post.description),
     },
   };
 }
@@ -115,15 +140,21 @@ export function getAllBlogPosts(): BlogPostPreview[] {
  * Redis wins on collision.
  * Public function: Returns ONLY published posts.
  */
-export async function getPublishedBlogPostsAsync(): Promise<BlogPostPreview[]> {
-  const [redisPosts, filePosts] = await Promise.all([
-    listRedisPosts(),
-    Promise.resolve(getAllFilePosts()),
-  ]);
+export const getPublishedBlogPostsAsync = cache(
+  async function getPublishedBlogPostsAsyncCached(): Promise<
+    BlogPostPreview[]
+  > {
+    const [redisPosts, filePosts] = await Promise.all([
+      listRedisPosts(),
+      Promise.resolve(getAllFilePosts()),
+    ]);
 
-  const merged = mergePosts(redisPosts, filePosts);
-  return merged.filter((post) => post.isPublished).map(postToPreview);
-}
+    const redisListItems: RedisPostMetadata[] = redisPosts;
+    const fileListItems = filePosts.map(postToListItem);
+    const merged = mergePosts(redisListItems, fileListItems);
+    return merged.filter((post) => post.isPublished).map(postToPreview);
+  },
+);
 
 /**
  * Alias for getPublishedBlogPostsAsync.
@@ -137,7 +168,7 @@ export async function getAllBlogPostsAsync(): Promise<BlogPostPreview[]> {
  * Checks Redis first, falls back to file loader.
  * Public function: Returns ONLY published posts (returns null if draft).
  */
-export async function getBlogPostBySlug(
+export const getBlogPostBySlug = cache(async function getBlogPostBySlugCached(
   slug: string,
 ): Promise<BlogPost | null> {
   const normalizedSlug = normalizeSlug(slug);
@@ -178,7 +209,7 @@ export async function getBlogPostBySlug(
   }
 
   return null;
-}
+});
 
 /**
  * Get blog posts by tag (synchronous).
@@ -302,12 +333,12 @@ export async function getRelatedPosts(
  * Includes drafts (isPublished: false).
  * Enforces requireAdmin() security boundary.
  */
-export async function getAllPostsForAdmin(): Promise<Post[]> {
+export async function getAllPostsForAdmin(): Promise<BlogPostListItem[]> {
   await requireAdmin();
 
   const [redisPosts, filePosts] = await Promise.all([
     listRedisPosts(),
-    Promise.resolve(getAllFilePosts()),
+    Promise.resolve(getAllFilePosts().map(postToListItem)),
   ]);
 
   return mergePosts(redisPosts, filePosts);

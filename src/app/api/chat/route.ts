@@ -8,9 +8,10 @@ import { getPublishedProjects } from '@/lib/projects';
 
 export const runtime = 'nodejs';
 
-const GEMINI_ENDPOINT =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:streamGenerateContent?alt=sse';
-const GEMINI_TIMEOUT_MS = 12000;
+const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || 'gemini-3.6-flash';
+const GEMINI_FALLBACK_MODEL =
+  process.env.GEMINI_FALLBACK_MODEL?.trim() || 'gemini-3.5-flash-lite';
+const GEMINI_TIMEOUT_MS = 30000;
 const MAX_PROJECT_CONTEXT = 20;
 const MAX_BLOG_CONTEXT = 12;
 
@@ -156,49 +157,98 @@ export async function POST(request: NextRequest) {
     return fallbackResponse(message);
   }
 
-  const abortController = new AbortController();
-  const timeout = setTimeout(() => abortController.abort(), GEMINI_TIMEOUT_MS);
+  const systemPrompt = generateSystemPrompt(await getCurrentPublishedContext());
+  const requestBody = JSON.stringify({
+    systemInstruction: {
+      parts: [
+        {
+          text: [
+            systemPrompt,
+            [
+              'Answer quality rules:',
+              '- Answer the latest visitor question directly.',
+              '- For a project question, explain its purpose and available implementation details, list its technologies, and link to its project page or repository.',
+              '- Never invent project features, metrics, role details, or results that are not in the portfolio context. Explicitly say when information is not listed.',
+              '- Do not stop after a generic preface like "Here are...".',
+              '- Keep the response concise: 2-5 bullets or one short paragraph.',
+            ].join('\n'),
+          ].join('\n\n'),
+        },
+      ],
+    },
+    contents: buildGeminiContents(messages, message),
+    generationConfig: {
+      temperature: 0.4,
+      maxOutputTokens: 260,
+    },
+  });
 
-  let geminiResponse: Response;
-  try {
-    const systemPrompt = generateSystemPrompt(
-      await getCurrentPublishedContext(),
+  const modelCandidates = [
+    ...new Set([GEMINI_MODEL, GEMINI_FALLBACK_MODEL].filter(Boolean)),
+  ];
+  let geminiResponse: Response | undefined;
+  let activeModel = GEMINI_MODEL;
+  let abortController: AbortController | undefined;
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+
+  for (const [index, model] of modelCandidates.entries()) {
+    const requestAbortController = new AbortController();
+    const requestTimeout = setTimeout(
+      () => requestAbortController.abort(),
+      GEMINI_TIMEOUT_MS,
     );
-    geminiResponse = await fetch(GEMINI_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-goog-api-key': apiKey,
-      },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [
-            {
-              text: [
-                systemPrompt,
-                [
-                  'Answer quality rules:',
-                  '- Answer the latest visitor question directly.',
-                  '- For a project question, explain its purpose and available implementation details, list its technologies, and link to its project page or repository.',
-                  '- Never invent project features, metrics, role details, or results that are not in the portfolio context. Explicitly say when information is not listed.',
-                  '- Do not stop after a generic preface like "Here are...".',
-                  '- Keep the response concise: 2-5 bullets or one short paragraph.',
-                ].join('\n'),
-              ].join('\n\n'),
-            },
-          ],
+
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-goog-api-key': apiKey,
+          },
+          body: requestBody,
+          signal: requestAbortController.signal,
         },
-        contents: buildGeminiContents(messages, message),
-        generationConfig: {
-          temperature: 0.4,
-          maxOutputTokens: 260,
-        },
-      }),
-      signal: abortController.signal,
-    });
-  } catch (error) {
-    clearTimeout(timeout);
-    console.error('[api/chat] Gemini request failed:', error);
+      );
+
+      const shouldTryFallback =
+        index < modelCandidates.length - 1 &&
+        [429, 503, 504].includes(response.status);
+      if (shouldTryFallback) {
+        clearTimeout(requestTimeout);
+        console.warn(
+          `[api/chat] Gemini model "${model}" returned ${response.status}; retrying with "${modelCandidates[index + 1]}".`,
+        );
+        await response.body?.cancel();
+        continue;
+      }
+
+      geminiResponse = response;
+      activeModel = model;
+      abortController = requestAbortController;
+      timeout = requestTimeout;
+      break;
+    } catch (error) {
+      clearTimeout(requestTimeout);
+      if (index < modelCandidates.length - 1) {
+        console.warn(
+          `[api/chat] Gemini request for model "${model}" failed; retrying with "${modelCandidates[index + 1]}":`,
+          error,
+        );
+        continue;
+      }
+
+      console.error(
+        `[api/chat] Gemini request for model "${model}" failed:`,
+        error,
+      );
+      return fallbackResponse(message);
+    }
+  }
+
+  if (!geminiResponse || !abortController || !timeout) {
+    console.error('[api/chat] No Gemini model returned a response.');
     return fallbackResponse(message);
   }
 
@@ -216,7 +266,7 @@ export async function POST(request: NextRequest) {
         ? errorPayload.error.message.slice(0, 500)
         : 'No provider error message was returned.';
     console.error(
-      `[api/chat] Gemini request failed with status ${geminiResponse.status}: ${providerMessage}`,
+      `[api/chat] Gemini request for model "${activeModel}" failed with status ${geminiResponse.status}: ${providerMessage}`,
     );
     return fallbackResponse(message);
   }
