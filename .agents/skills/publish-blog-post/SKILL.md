@@ -74,6 +74,6 @@ isPublished: true
    - Header title, date, reading time, category, and tags render cleanly.
    - Table of contents links navigate to headings correctly.
    - Code blocks render syntax highlighting and copy button works.
-   - KaTeX formulas render without syntax errors. Pasted content requires **Preview full article**; automatic preview pauses over 20,000 characters.
+   - KaTeX formulas render without syntax errors. Pasted content requires **Preview full article**; the full preview uses a sandboxed frame so the large rendered result does not travel through a Server Action response. Automatic preview pauses over 20,000 characters.
    - Mobile and desktop responsive layouts.
 3. Run `npm run build` to verify Next.js static generation passes without MDX parsing errors.

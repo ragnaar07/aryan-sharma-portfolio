@@ -4,7 +4,10 @@ import path from 'node:path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { compileMdxPreview } from '../src/lib/mdx-preview-render';
+import {
+  compileMdxPreview,
+  compileMdxPreviewHtml,
+} from '../src/lib/mdx-preview-render';
 import {
   preprocessMdxContent,
   sharedMdxOptions,
@@ -245,6 +248,18 @@ $$`;
     expect(validation.valid).toBe(true);
     expect(validation.preprocessedContent).toContain('count={items.length}');
     expect(validation.preprocessedContent).toContain('>{items[0]}');
+  });
+
+  it('renders full preview HTML without executing MDX or unsafe JSX', async () => {
+    const result = await compileMdxPreviewHtml(
+      '# Preview\n\nMath $x^2$.\n\n<Callout>{dangerous()}</Callout>\n\n<a href="javascript:alert(1)">unsafe link</a>',
+    );
+
+    expect(result.valid).toBe(true);
+    expect(result.html).toContain('<h1>Preview</h1>');
+    expect(result.html).toContain('katex');
+    expect(result.html).toContain('{dangerous()}');
+    expect(result.html).not.toContain('javascript:');
   });
 
   it('reports an unclosed JSX expression instead of escaping it as prose', async () => {

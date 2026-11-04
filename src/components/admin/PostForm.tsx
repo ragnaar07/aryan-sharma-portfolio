@@ -139,6 +139,22 @@ async function compressImageToWebp(file: File): Promise<Blob> {
   return blob;
 }
 
+function createPreviewDocument(markup: string): string {
+  const stylesheets = Array.from(
+    document.querySelectorAll<HTMLLinkElement>('link[rel="stylesheet"][href]'),
+  )
+    .map(
+      (link) =>
+        `<link rel="stylesheet" href="${link.href.replaceAll('&', '&amp;').replaceAll('"', '&quot;')}">`,
+    )
+    .join('');
+  const theme = document.documentElement.classList.contains('dark')
+    ? 'dark'
+    : '';
+
+  return `<!doctype html><html class="${theme}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">${stylesheets}<base href="${window.location.origin}/"></head><body class="bg-background text-foreground"><article class="prose prose-neutral dark:prose-invert text-foreground/90 max-w-none">${markup}</article></body></html>`;
+}
+
 export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
   const router = useRouter();
   const initialValues: PostFormStateValues = {
@@ -203,6 +219,9 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
   const [mdxErrorLocation, setMdxErrorLocation] = useState<number | null>(null);
   const mdxValidationRequestRef = useRef(0);
   const [previewNode, setPreviewNode] = useState<React.ReactNode | null>(null);
+  const [fullPreviewDocument, setFullPreviewDocument] = useState<string | null>(
+    null,
+  );
   const [isPreviewStale, setIsPreviewStale] = useState(false);
   const [isFullPreviewLoading, setIsFullPreviewLoading] = useState(false);
   const [requiresManualPreview, setRequiresManualPreview] = useState(
@@ -213,6 +232,19 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
     null,
   );
   const contentCountRef = useRef<HTMLSpanElement>(null);
+  const contentRemainingRef = useRef<HTMLSpanElement>(null);
+
+  const updateContentCount = (content: string) => {
+    if (contentCountRef.current) {
+      contentCountRef.current.textContent = content.length.toLocaleString();
+    }
+    if (contentRemainingRef.current) {
+      contentRemainingRef.current.textContent = Math.max(
+        0,
+        BLOG_VALIDATION.content.maxCharacters - content.length,
+      ).toLocaleString();
+    }
+  };
 
   const draftStorageKey = `admin-blog-post-draft:${isEditing ? initialPost?.slug || 'unknown' : 'new'}`;
   const [draftReady, setDraftReady] = useState(false);
@@ -471,10 +503,7 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
       if (editorTextareaRef.current) {
         editorTextareaRef.current.value = state.values.content;
       }
-      if (contentCountRef.current) {
-        contentCountRef.current.textContent =
-          state.values.content.length.toLocaleString();
-      }
+      updateContentCount(state.values.content);
       if (
         state.values.content.length <=
         BLOG_VALIDATION.content.maxPreviewCharacters
@@ -517,10 +546,7 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
     if (editorTextareaRef.current) {
       editorTextareaRef.current.value = recoveredDraft.values.content;
     }
-    if (contentCountRef.current) {
-      contentCountRef.current.textContent =
-        recoveredDraft.values.content.length.toLocaleString();
-    }
+    updateContentCount(recoveredDraft.values.content);
     if (
       recoveredDraft.values.content.length <=
       BLOG_VALIDATION.content.maxPreviewCharacters
@@ -672,12 +698,26 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
     setMdxSyntaxError(null);
     setMdxValidationWarning(null);
     setMdxErrorLocation(null);
+    setFullPreviewDocument(null);
 
     try {
-      const result = await renderMdxPreviewAction(content, true);
+      const response = await fetch('/api/admin/blog-preview', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+        },
+        body: content,
+      });
+      const result: {
+        html?: string;
+        error?: string;
+        line?: number;
+        column?: number;
+        sourceExcerpt?: string;
+      } = await response.json();
       if (requestId !== mdxValidationRequestRef.current) return;
 
-      if (!result.valid) {
+      if (!response.ok) {
         const location =
           result.line && result.column
             ? `Line ${result.line}, Column ${result.column}: `
@@ -687,15 +727,18 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
         const excerpt = result.sourceExcerpt
           ? `\n> ${result.sourceExcerpt}`
           : '';
-        setMdxSyntaxError(
-          `${location}${result.reason || result.error || 'Syntax error'}${excerpt}`,
-        );
-        setMdxErrorLocation(result.line || null);
-        setPreviewNode(null);
+        const errorMessage = `${location}${result.error || 'The server could not render this article.'}${excerpt}`;
+        if (response.status === 422) {
+          setMdxSyntaxError(errorMessage);
+          setMdxErrorLocation(result.line || null);
+        } else {
+          setMdxValidationWarning(errorMessage);
+        }
         return;
       }
 
-      setPreviewNode(result.preview ?? null);
+      setPreviewNode(null);
+      setFullPreviewDocument(createPreviewDocument(result.html || ''));
     } catch (error: unknown) {
       if (requestId !== mdxValidationRequestRef.current) return;
       const message = error instanceof Error ? error.message : String(error);
@@ -1329,7 +1372,15 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
               {currentValues.content.length.toLocaleString()}
             </span>{' '}
             / {BLOG_VALIDATION.content.maxCharacters.toLocaleString()}{' '}
-            characters
+            characters ·{' '}
+            <span ref={contentRemainingRef}>
+              {Math.max(
+                0,
+                BLOG_VALIDATION.content.maxCharacters -
+                  currentValues.content.length,
+              ).toLocaleString()}
+            </span>{' '}
+            left
           </Badge>
         </CardHeader>
         <CardContent className="min-h-0 flex-1 p-4 pt-4 sm:p-6">
@@ -1391,10 +1442,7 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                   maxLength={BLOG_VALIDATION.content.maxCharacters}
                   onChange={(e) => {
                     const content = e.currentTarget.value;
-                    if (contentCountRef.current) {
-                      contentCountRef.current.textContent =
-                        content.length.toLocaleString();
-                    }
+                    updateContentCount(content);
                     setContentInputError(null);
                     setIsDraftDirty(true);
                     mdxValidationRequestRef.current += 1;
@@ -1433,6 +1481,7 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                         `Live preview is paused over ${BLOG_VALIDATION.content.maxPreviewCharacters.toLocaleString()} characters. Use “Preview full article” to render it on demand; saving still validates the full post.`,
                       );
                       setPreviewNode(null);
+                      setFullPreviewDocument(null);
                       setIsPreviewStale(false);
                       contentSyncTimerRef.current = setTimeout(() => {
                         setDraftRevision((revision) => revision + 1);
@@ -1441,6 +1490,7 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                     }
 
                     setMdxValidationWarning(null);
+                    setFullPreviewDocument(null);
                     setIsPreviewStale(true);
                     contentSyncTimerRef.current = setTimeout(() => {
                       setContentValue(content);
@@ -1594,6 +1644,13 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                       <Loader2 className="size-6 animate-spin" />
                       <p>Rendering the full article…</p>
                     </div>
+                  ) : fullPreviewDocument ? (
+                    <iframe
+                      title="Full article preview"
+                      sandbox=""
+                      srcDoc={fullPreviewDocument}
+                      className="bg-background h-full min-h-[300px] w-full rounded-md"
+                    />
                   ) : previewNode !== null ? (
                     <article className="prose prose-neutral dark:prose-invert text-foreground/90 max-w-none">
                       {previewNode}
