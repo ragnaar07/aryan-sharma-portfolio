@@ -1,8 +1,10 @@
 import { compile } from '@mdx-js/mdx';
 import fs from 'node:fs';
 import path from 'node:path';
+import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
+import { compileMdxPreview } from '../src/lib/mdx-preview-render';
 import {
   preprocessMdxContent,
   sharedMdxOptions,
@@ -18,6 +20,17 @@ describe('MDX Math & Sanitization Pipeline', () => {
       outputFormat: 'function-body',
     });
     return String(result);
+  }
+
+  async function renderPreview(rawContent: string) {
+    const result = await compileMdxPreview(rawContent);
+    return {
+      ...result,
+      html:
+        result.preview === undefined
+          ? undefined
+          : renderToStaticMarkup(result.preview),
+    };
   }
 
   // Case a: inline math: $2 \times 2$ and $W_{ij}$
@@ -95,6 +108,98 @@ $$
     expect(output).toContain('a^2');
   });
 
+  it('preserves cases inside an existing display-math block without nested delimiters', async () => {
+    const input = String.raw`$$
+\delta[n] =
+\begin{cases}
+1, & n = 0 \\
+0, & n \neq 0
+\end{cases}
+$$`;
+
+    expect(preprocessMdxContent(input)).toBe(input);
+
+    const preview = await renderPreview(input);
+    expect(preview.valid).toBe(true);
+    expect(preview.html).toContain('katex-display');
+    expect(preview.html).not.toContain('katex-error');
+  });
+
+  it('preserves existing aligned, matrix, and bmatrix display math across multiple blocks', async () => {
+    const input = String.raw`$$
+\begin{aligned}
+a &= b + c \\
+d &= e + f
+\end{aligned}
+$$
+
+$$
+\begin{matrix}
+1 & 2 \\
+3 & 4
+\end{matrix}
+$$
+
+$$
+\begin{bmatrix}
+5 & 6 \\
+7 & 8
+\end{bmatrix}
+$$`;
+
+    expect(preprocessMdxContent(input)).toBe(input);
+
+    const validation = await validateMdxCompilation(input);
+    expect(validation.valid).toBe(true);
+
+    const output = await compileToString(input);
+    expect(output).toContain('katex-display');
+  });
+
+  it('wraps a standalone bare cases environment exactly once', async () => {
+    const input = String.raw`\begin{cases}
+1, & n = 0 \\
+0, & n \neq 0
+\end{cases}`;
+    const expected = `$$
+${input}
+$$`;
+
+    expect(preprocessMdxContent(input).trim()).toBe(expected);
+
+    const preview = await renderPreview(input);
+    expect(preview.valid).toBe(true);
+    expect(preview.html).toContain('katex-display');
+    expect(preprocessMdxContent(preprocessMdxContent(input))).toBe(
+      preprocessMdxContent(input),
+    );
+  });
+
+  it('leaves LaTeX examples in fenced code and inline math unchanged', async () => {
+    const inlineMath = String.raw`Inline math: $\text{cost \$5} + \alpha$ and $x^2$.`;
+    const code = String.raw`~~~latex
+\begin{cases}
+1, & n = 0 \\
+0, & n \neq 0
+\end{cases}
+~~~`;
+    const input = `${inlineMath}\n\n${code}`;
+
+    expect(preprocessMdxContent(input)).toBe(input);
+
+    const validation = await validateMdxCompilation(input);
+    expect(validation.valid).toBe(true);
+
+    const preview = await renderPreview(
+      `${String.raw`Inline math: $\alpha + x^2$.`}\n\n${code}`,
+    );
+    expect(preview.valid).toBe(true);
+    expect(preview.html).toContain('katex');
+    expect(preview.html).not.toContain('katex-error');
+    expect(preview.html).toContain('class="shiki');
+    expect(preview.html).toContain('\\begin');
+  });
+
   // Case d: math with a < or > sign inside, e.g. $a < b$
   it('case d: compiles math with < or > signs inside intact', async () => {
     const input = 'Threshold test where $a < b$ and $\\alpha > \\beta$.';
@@ -116,6 +221,111 @@ $$
     expect(output).toContain('P < 0.5');
     expect(output).toContain('{x, y}');
     expect(output).toContain('Background note');
+  });
+
+  it('escapes less-than characters in plain prose without breaking comparisons', async () => {
+    const input = 'Values x<y, x<=y, and P < 0.5 are all plain text.';
+    const validation = await validateMdxCompilation(input);
+
+    expect(validation.valid).toBe(true);
+    expect(preprocessMdxContent(input)).toContain('x\\<y');
+    expect(preprocessMdxContent(input)).toContain('x\\<=y');
+
+    const output = await compileToString(input);
+    expect(output).toContain('x<y');
+    expect(output).toContain('x<=y');
+    expect(output).toContain('P < 0.5');
+  });
+
+  it('preserves valid JSX attributes and child expressions', async () => {
+    const input =
+      'Use <Callout count={items.length}>{items[0]}</Callout> in a post.';
+    const validation = await validateMdxCompilation(input);
+
+    expect(validation.valid).toBe(true);
+    expect(validation.preprocessedContent).toContain('count={items.length}');
+    expect(validation.preprocessedContent).toContain('>{items[0]}');
+  });
+
+  it('reports an unclosed JSX expression instead of escaping it as prose', async () => {
+    const validation = await validateMdxCompilation(
+      '<Callout>{unfinished</Callout>',
+    );
+
+    expect(validation.valid).toBe(false);
+    expect(validation.reason || validation.error).toBeDefined();
+  });
+
+  it('treats Markdown autolinks as prose instead of malformed JSX', async () => {
+    const input = 'The URL <https://example.com> is shown literally.';
+    const validation = await validateMdxCompilation(input);
+
+    expect(validation.valid).toBe(true);
+    expect(preprocessMdxContent(input)).toContain('\\<https://example.com>');
+  });
+
+  it('handles nested JSX, multiline expressions, regex braces, and template literals', async () => {
+    const input = [
+      '<section data-value={{ nested: { value: "}" } }}>',
+      '  {(() => {',
+      '    const matchesBrace = /[}]/.test("}");',
+      '    const label = `value: ${matchesBrace ? "}" : "{"}`;',
+      '    return <strong>{label}</strong>;',
+      '  })()}',
+      '</section>',
+    ].join('\n');
+
+    const validation = await validateMdxCompilation(input);
+    expect(validation.valid).toBe(true);
+
+    const preview = await renderPreview(input);
+    expect(preview.valid).toBe(true);
+    expect(preview.html).toContain('<section data-value=');
+    expect(preview.html).toContain('<strong>value:');
+  });
+
+  it('keeps escaped delimiters and combined math, code, and JSX intact', async () => {
+    const input = [
+      String.raw`Escaped \{brace\}, \\{even slash brace}, and \$5.`,
+      '<div data-total={2 + 2}>',
+      'Math $x < y$ stays rendered.',
+      '`{inline <code>}` stays literal.',
+      '```ts',
+      'const value = { total: 4, valid: x < y };',
+      '```',
+      '</div>',
+    ].join('\n\n');
+
+    const preprocessed = preprocessMdxContent(input);
+    expect(preprocessMdxContent(preprocessed)).toBe(preprocessed);
+
+    const preview = await renderPreview(input);
+    expect(preview.valid).toBe(true);
+    expect(preview.html).toContain('katex');
+    expect(preview.html).toContain('data-total="4"');
+    expect(preview.html).toContain('inline &lt;code&gt;');
+    expect(preview.html).toContain('>const</span>');
+    expect(preview.html).toContain(' value</span>');
+  });
+
+  it('returns a mapped source location for an invalid multiline JSX expression', async () => {
+    const input = '<Callout>\n  {1 + }\n</Callout>';
+    const preview = await renderPreview(input);
+
+    expect(preview.valid).toBe(false);
+    expect(preview.line).toBe(2);
+    expect(preview.sourceExcerpt).toBe('{1 + }');
+  });
+
+  it('rejects JSX expressions that compile but fail when rendered', async () => {
+    const preview = await compileMdxPreview(
+      '<span>{missingPreviewVariable}</span>',
+    );
+
+    expect(preview.valid).toBe(true);
+    expect(() => renderToStaticMarkup(preview.preview!)).toThrow(
+      'missingPreviewVariable',
+    );
   });
 
   // Case f: fenced code block containing { } and < : unchanged and compiles

@@ -16,21 +16,27 @@ import {
 } from 'lucide-react';
 import { Link } from 'next-view-transitions';
 import Image from 'next/image';
-import React, { useActionState, useEffect, useRef, useState } from 'react';
-import ReactMarkdown, { type Components } from 'react-markdown';
-import rehypeKatex from 'rehype-katex';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
+import { useRouter } from 'next/navigation';
+import React, {
+  useActionState,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 
-import { savePostAction, validateMdxAction } from '@/app/admin/actions';
-import { BlogComponents } from '@/components/blog/BlogComponents';
+import { renderMdxPreviewAction, savePostAction } from '@/app/admin/actions';
 import {
   BLOG_CATEGORIES,
   BlogCategory,
   adminBlogLabels,
 } from '@/config/BlogAdmin';
+import {
+  type PostDraftSnapshot,
+  createPostDraftSnapshot,
+  parsePostDraftSnapshot,
+} from '@/lib/blog-draft';
 import type { PostFormStateValues } from '@/lib/blog-validation';
-import { preprocessMdxContent } from '@/lib/mdx-sanitize';
 import type { Post } from '@/types/blog';
 
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
@@ -59,33 +65,6 @@ interface PostFormProps {
   initialPost?: Partial<Post> | null;
   isEditing?: boolean;
 }
-
-// Live preview renderer using the exact same components and styling as the public post page
-const previewComponents = {
-  ...BlogComponents,
-  img: ({
-    src,
-    alt,
-    ...props
-  }: {
-    src?: string;
-    alt?: string;
-    [key: string]: unknown;
-  }) => {
-    if (!src) return null;
-    return (
-      <Image
-        src={src}
-        alt={alt || ''}
-        width={800}
-        height={400}
-        className="rounded-lg object-cover"
-        unoptimized
-        {...props}
-      />
-    );
-  },
-};
 
 /**
  * Client-side image compressor:
@@ -160,6 +139,7 @@ async function compressImageToWebp(file: File): Promise<Blob> {
 }
 
 export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
+  const router = useRouter();
   const initialValues: PostFormStateValues = {
     title: initialPost?.title || '',
     slug: initialPost?.slug || '',
@@ -173,6 +153,7 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
     content: initialPost?.content || '',
     isPublished: Boolean(initialPost?.isPublished),
   };
+  const initialValuesJson = JSON.stringify(initialValues);
 
   const [state, formAction, isPending] = useActionState(savePostAction, {
     success: false,
@@ -193,6 +174,13 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
     currentValues.content,
   );
   const [titleValue, setTitleValue] = useState<string>(currentValues.title);
+  const [descriptionValue, setDescriptionValue] = useState<string>(
+    currentValues.description,
+  );
+  const [tagsValue, setTagsValue] = useState<string>(currentValues.tags);
+  const [youtubeUrlValue, setYoutubeUrlValue] = useState<string>(
+    currentValues.youtubeUrl,
+  );
 
   // Cover image management state
   const [coverImage, setCoverImage] = useState<string>(
@@ -205,6 +193,22 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
 
   // Real-time MDX compilation syntax validation
   const [mdxSyntaxError, setMdxSyntaxError] = useState<string | null>(null);
+  const [mdxValidationWarning, setMdxValidationWarning] = useState<
+    string | null
+  >(null);
+  const [mdxErrorLocation, setMdxErrorLocation] = useState<number | null>(null);
+  const mdxValidationRequestRef = useRef(0);
+  const [previewNode, setPreviewNode] = useState<React.ReactNode | null>(null);
+  const [isPreviewStale, setIsPreviewStale] = useState(false);
+
+  const draftStorageKey = `admin-blog-post-draft:${isEditing ? initialPost?.slug || 'unknown' : 'new'}`;
+  const [draftReady, setDraftReady] = useState(false);
+  const [isDraftDirty, setIsDraftDirty] = useState(false);
+  const [recoveredDraft, setRecoveredDraft] =
+    useState<PostDraftSnapshot | null>(null);
+  const [draftSavedAt, setDraftSavedAt] = useState<number | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
+  const saveHandledRef = useRef(false);
 
   // Preview Mode: 'write' (editor only), 'split' (side-by-side on desktop), 'preview' (preview only)
   const [previewMode, setPreviewMode] = useState<'write' | 'split' | 'preview'>(
@@ -216,6 +220,109 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
   const editorTextareaRef = useRef<HTMLTextAreaElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const isSyncingRef = useRef<boolean>(false);
+  const draftValues = useMemo(
+    () => ({
+      title: titleValue,
+      slug: slugValue,
+      description: descriptionValue,
+      category: selectedCategory,
+      coverImage,
+      tags: tagsValue,
+      youtubeUrl: youtubeUrlValue,
+      content: contentValue,
+      isPublished,
+    }),
+    [
+      titleValue,
+      slugValue,
+      descriptionValue,
+      selectedCategory,
+      coverImage,
+      tagsValue,
+      youtubeUrlValue,
+      contentValue,
+      isPublished,
+    ],
+  );
+
+  useEffect(() => {
+    try {
+      const rawDraft = window.localStorage.getItem(draftStorageKey);
+      if (rawDraft) {
+        const draft = parsePostDraftSnapshot(rawDraft);
+        const serverUpdatedAt = Date.parse(
+          initialPost?.updatedDate || initialPost?.date || '',
+        );
+        const isCurrent =
+          !isEditing ||
+          !Number.isFinite(serverUpdatedAt) ||
+          (draft !== null && draft.savedAt >= serverUpdatedAt);
+
+        if (
+          draft &&
+          isCurrent &&
+          JSON.stringify(draft.values) !== initialValuesJson
+        ) {
+          setRecoveredDraft(draft);
+        } else {
+          window.localStorage.removeItem(draftStorageKey);
+        }
+      }
+    } catch {
+      setDraftError('Local draft storage is unavailable in this browser.');
+    } finally {
+      setDraftReady(true);
+    }
+  }, [
+    draftStorageKey,
+    initialPost?.date,
+    initialPost?.updatedDate,
+    initialValuesJson,
+    isEditing,
+  ]);
+
+  useEffect(() => {
+    if (!draftReady || !isDraftDirty) return;
+
+    const saveDraft = () => {
+      try {
+        const snapshot = createPostDraftSnapshot(draftValues);
+        window.localStorage.setItem(draftStorageKey, JSON.stringify(snapshot));
+        setDraftSavedAt(snapshot.savedAt);
+        setDraftError(null);
+      } catch {
+        setDraftError('Could not save this draft in browser storage.');
+      }
+    };
+    const saveWhenHidden = () => {
+      if (document.visibilityState === 'hidden') saveDraft();
+    };
+    const timer = window.setTimeout(saveDraft, 500);
+    window.addEventListener('beforeunload', saveDraft);
+    document.addEventListener('visibilitychange', saveWhenHidden);
+
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('beforeunload', saveDraft);
+      document.removeEventListener('visibilitychange', saveWhenHidden);
+    };
+  }, [draftReady, draftStorageKey, draftValues, isDraftDirty]);
+
+  useEffect(() => {
+    if (!state.success || saveHandledRef.current) return;
+    saveHandledRef.current = true;
+    try {
+      window.localStorage.removeItem(draftStorageKey);
+    } catch {
+      setDraftError(
+        'The post was saved, but its local recovery draft remains.',
+      );
+    }
+    setIsDraftDirty(false);
+    setRecoveredDraft(null);
+    setDraftSavedAt(null);
+    router.push('/admin');
+  }, [state.success, draftStorageKey, router]);
 
   // Proportional Unidirectional Sync Scroll: Editor drives Preview
   useEffect(() => {
@@ -250,14 +357,24 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
 
   // Debounced real-time MDX validation
   useEffect(() => {
+    const requestId = ++mdxValidationRequestRef.current;
+    setMdxSyntaxError(null);
+    setMdxValidationWarning(null);
+    setMdxErrorLocation(null);
+
     if (!contentValue.trim()) {
-      setMdxSyntaxError(null);
+      setPreviewNode(null);
+      setIsPreviewStale(false);
       return;
     }
 
+    let isActive = true;
+    setIsPreviewStale(true);
     const timer = setTimeout(async () => {
       try {
-        const result = await validateMdxAction(contentValue);
+        const result = await renderMdxPreviewAction(contentValue);
+        if (!isActive || requestId !== mdxValidationRequestRef.current) return;
+
         if (!result.valid) {
           const loc =
             result.line && result.column
@@ -271,39 +388,117 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
           setMdxSyntaxError(
             `${loc}${result.reason || result.error || 'Syntax error'}${excerpt}`,
           );
+          setMdxErrorLocation(result.line || null);
         } else {
           setMdxSyntaxError(null);
+          setPreviewNode(result.preview ?? null);
+          setIsPreviewStale(false);
         }
-      } catch {
-        // Ignore network failure during typing
+      } catch (error: unknown) {
+        if (isActive && requestId === mdxValidationRequestRef.current) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          if (error instanceof TypeError || /network|fetch/i.test(message)) {
+            setMdxValidationWarning(
+              'Live MDX preview is temporarily unavailable. Saving will retry compilation.',
+            );
+          } else {
+            setMdxSyntaxError(
+              message || 'The MDX preview could not be rendered.',
+            );
+          }
+        }
       }
     }, 400);
 
-    return () => clearTimeout(timer);
+    return () => {
+      isActive = false;
+      clearTimeout(timer);
+    };
   }, [contentValue]);
 
   // Sync state if form action returns updated values after validation failure
   useEffect(() => {
     if (state.values) {
-      if (state.values.category) {
-        setSelectedCategory(state.values.category);
-      }
+      setSelectedCategory(state.values.category);
       setIsPublished(Boolean(state.values.isPublished));
-      if (state.values.slug) {
-        setSlugValue(state.values.slug);
-      }
-      if (state.values.content) {
-        setContentValue(state.values.content);
-      }
-      if (state.values.title) {
-        setTitleValue(state.values.title);
-      }
-      if (state.values.coverImage !== undefined) {
-        setCoverImage(state.values.coverImage);
-      }
+      setSlugValue(state.values.slug);
+      setContentValue(state.values.content);
+      setTitleValue(state.values.title);
+      setDescriptionValue(state.values.description);
+      setTagsValue(state.values.tags);
+      setYoutubeUrlValue(state.values.youtubeUrl);
+      setCoverImage(state.values.coverImage);
     }
   }, [state.values]);
 
+  const restoreDraft = () => {
+    if (!recoveredDraft) return;
+    setTitleValue(recoveredDraft.values.title);
+    setSlugValue(recoveredDraft.values.slug);
+    setDescriptionValue(recoveredDraft.values.description);
+    setSelectedCategory(recoveredDraft.values.category);
+    setCoverImage(recoveredDraft.values.coverImage);
+    setTagsValue(recoveredDraft.values.tags);
+    setYoutubeUrlValue(recoveredDraft.values.youtubeUrl);
+    setContentValue(recoveredDraft.values.content);
+    setIsPublished(recoveredDraft.values.isPublished);
+    setIsDraftDirty(true);
+    setDraftSavedAt(recoveredDraft.savedAt);
+    setRecoveredDraft(null);
+  };
+
+  const discardDraft = () => {
+    try {
+      window.localStorage.removeItem(draftStorageKey);
+      setRecoveredDraft(null);
+      setIsDraftDirty(false);
+      setDraftSavedAt(null);
+      setDraftError(null);
+    } catch {
+      setDraftError('Could not remove the saved browser draft.');
+    }
+  };
+
+  const focusMdxErrorLine = () => {
+    const textarea = editorTextareaRef.current;
+    const savedErrorLine =
+      state.errors?.content?.[0]?.match(/\bline\s+(\d+)/i)?.[1];
+    const errorLine =
+      mdxErrorLocation || (savedErrorLine ? Number(savedErrorLine) : null);
+    if (!textarea || !errorLine) return;
+
+    const lines = contentValue.split('\n');
+    const lineIndex = Math.min(Math.max(errorLine - 1, 0), lines.length - 1);
+    const start =
+      lines.slice(0, lineIndex).join('\n').length + (lineIndex ? 1 : 0);
+    const end = start + (lines[lineIndex]?.length || 0);
+    const lineHeight = Number.parseFloat(
+      window.getComputedStyle(textarea).lineHeight,
+    );
+
+    textarea.focus();
+    textarea.setSelectionRange(start, end);
+    if (Number.isFinite(lineHeight)) {
+      textarea.scrollTop = Math.max(0, lineIndex * lineHeight);
+    }
+  };
+
+  const navigateToMdxError = () => {
+    if (previewMode === 'preview') {
+      setPreviewMode('split');
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(focusMdxErrorLine);
+      });
+      return;
+    }
+    focusMdxErrorLine();
+  };
+
+  const savedErrorLine =
+    state.errors?.content?.[0]?.match(/\bline\s+(\d+)/i)?.[1];
+  const displayedMdxErrorLine =
+    mdxErrorLocation || (savedErrorLine ? Number(savedErrorLine) : null);
   const handleTitleBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     if (!isEditing && !slugValue.trim()) {
       const generated = e.target.value
@@ -338,6 +533,7 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
       }
 
       setCoverImage(data.url);
+      setIsDraftDirty(true);
     } catch (err) {
       setCoverUploadError(
         err instanceof Error ? err.message : 'Upload failed. Please try again.',
@@ -437,7 +633,12 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
           <Button
             type="submit"
             size="sm"
-            disabled={isPending || isUploadingCover}
+            disabled={
+              isPending ||
+              isUploadingCover ||
+              Boolean(mdxSyntaxError) ||
+              (isPreviewStale && !mdxValidationWarning)
+            }
             className="flex items-center gap-2"
           >
             {isPending ? (
@@ -469,6 +670,42 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
         </Alert>
       )}
 
+      {recoveredDraft && (
+        <Alert className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <AlertTitle>Unsaved draft found</AlertTitle>
+            <AlertDescription>
+              A local draft from{' '}
+              {new Date(recoveredDraft.savedAt).toLocaleString()} is available
+              to restore.
+            </AlertDescription>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <Button type="button" size="sm" onClick={restoreDraft}>
+              Restore draft
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={discardDraft}
+            >
+              Discard
+            </Button>
+          </div>
+        </Alert>
+      )}
+      {(draftError || draftSavedAt) && (
+        <p
+          className={`text-xs ${draftError ? 'text-destructive' : 'text-muted-foreground'}`}
+          role={draftError ? 'alert' : 'status'}
+        >
+          {draftError ||
+            (draftSavedAt !== null &&
+              `Local draft saved at ${new Date(draftSavedAt).toLocaleTimeString()}.`)}
+        </p>
+      )}
+
       {/* Article Details & Metadata Cards */}
       <div className="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
         {/* Post Identity (Title, Slug, Description) */}
@@ -493,7 +730,10 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                   id="title"
                   name="title"
                   value={titleValue}
-                  onChange={(e) => setTitleValue(e.target.value)}
+                  onChange={(e) => {
+                    setTitleValue(e.target.value);
+                    setIsDraftDirty(true);
+                  }}
                   placeholder={adminBlogLabels.form.titlePlaceholder}
                   onBlur={handleTitleBlur}
                   disabled={isPending}
@@ -516,7 +756,10 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                   id="slug"
                   name="slug"
                   value={slugValue}
-                  onChange={(e) => setSlugValue(e.target.value)}
+                  onChange={(e) => {
+                    setSlugValue(e.target.value);
+                    setIsDraftDirty(true);
+                  }}
                   placeholder={adminBlogLabels.form.slugPlaceholder}
                   disabled={isPending}
                   readOnly={isEditing}
@@ -547,7 +790,11 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                 <Textarea
                   id="tags"
                   name="tags"
-                  defaultValue={currentValues.tags}
+                  value={tagsValue}
+                  onChange={(e) => {
+                    setTagsValue(e.target.value);
+                    setIsDraftDirty(true);
+                  }}
                   placeholder={adminBlogLabels.form.tagsPlaceholder}
                   rows={3}
                   className="min-h-24 resize-y"
@@ -573,7 +820,11 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                 <Textarea
                   id="description"
                   name="description"
-                  defaultValue={currentValues.description}
+                  value={descriptionValue}
+                  onChange={(e) => {
+                    setDescriptionValue(e.target.value);
+                    setIsDraftDirty(true);
+                  }}
                   placeholder={adminBlogLabels.form.descriptionPlaceholder}
                   rows={6}
                   className="min-h-40 resize-y"
@@ -654,7 +905,10 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                 <Switch
                   id="isPublished"
                   checked={isPublished}
-                  onCheckedChange={setIsPublished}
+                  onCheckedChange={(checked) => {
+                    setIsPublished(checked);
+                    setIsDraftDirty(true);
+                  }}
                   disabled={isPending}
                 />
               </div>
@@ -668,7 +922,10 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                 <input type="hidden" name="category" value={selectedCategory} />
                 <Select
                   value={selectedCategory}
-                  onValueChange={setSelectedCategory}
+                  onValueChange={(category) => {
+                    setSelectedCategory(category);
+                    setIsDraftDirty(true);
+                  }}
                   disabled={isPending}
                 >
                   <SelectTrigger id="category" className="w-full">
@@ -699,7 +956,11 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                 <Input
                   id="youtubeUrl"
                   name="youtubeUrl"
-                  defaultValue={currentValues.youtubeUrl}
+                  value={youtubeUrlValue}
+                  onChange={(e) => {
+                    setYoutubeUrlValue(e.target.value);
+                    setIsDraftDirty(true);
+                  }}
                   placeholder={adminBlogLabels.form.youtubeUrlPlaceholder}
                   disabled={isPending}
                   aria-invalid={Boolean(state.errors?.youtubeUrl)}
@@ -779,6 +1040,7 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                     disabled={isPending || isUploadingCover}
                     onClick={() => {
                       setCoverImage('');
+                      setIsDraftDirty(true);
                       setCoverUploadError(null);
                     }}
                     className="text-destructive hover:bg-destructive/10 hover:text-destructive"
@@ -873,6 +1135,7 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                 value={coverImage}
                 onChange={(event) => {
                   setCoverImage(event.target.value);
+                  setIsDraftDirty(true);
                   setCoverUploadError(null);
                 }}
                 placeholder={adminBlogLabels.form.coverExternalUrlPlaceholder}
@@ -961,7 +1224,10 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                     id="content"
                     name="content"
                     value={contentValue}
-                    onChange={(e) => setContentValue(e.target.value)}
+                    onChange={(e) => {
+                      setContentValue(e.target.value);
+                      setIsDraftDirty(true);
+                    }}
                     placeholder={adminBlogLabels.form.contentPlaceholder}
                     disabled={isPending}
                     data-lenis-prevent
@@ -998,22 +1264,47 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                         </Label>
                       </div>
                       <Badge variant="secondary" className="text-[10px]">
-                        Site Typography
+                        Site MDX Renderer
                       </Badge>
                     </div>
                   </div>
 
                   {/* Pinned MDX syntax compilation warning banner */}
-                  {(mdxSyntaxError || state.errors?.content) && (
+                  {(mdxSyntaxError ||
+                    mdxValidationWarning ||
+                    state.errors?.content) && (
                     <Alert variant="destructive" className="py-2.5">
                       <AlertCircle className="size-4" />
                       <AlertTitle className="text-xs font-semibold">
-                        MDX Syntax Compilation Error
+                        {mdxValidationWarning &&
+                        !mdxSyntaxError &&
+                        !state.errors?.content
+                          ? 'MDX Preview Unavailable'
+                          : 'MDX Syntax Compilation Error'}
                       </AlertTitle>
                       <AlertDescription className="font-mono text-xs whitespace-pre-wrap">
-                        {mdxSyntaxError || state.errors?.content?.[0]}
+                        <span>
+                          {mdxSyntaxError ||
+                            mdxValidationWarning ||
+                            state.errors?.content?.[0]}
+                        </span>
+                        {displayedMdxErrorLine && (
+                          <button
+                            type="button"
+                            onClick={navigateToMdxError}
+                            className="text-primary ml-2 font-sans font-medium underline underline-offset-2"
+                          >
+                            Go to line {displayedMdxErrorLine}
+                          </button>
+                        )}
                       </AlertDescription>
                     </Alert>
+                  )}
+                  {isPreviewStale && previewNode !== null && (
+                    <p className="text-muted-foreground text-xs">
+                      Showing the last valid preview while the current content
+                      is checked.
+                    </p>
                   )}
                 </div>
 
@@ -1023,16 +1314,15 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                   data-lenis-prevent
                   className="bg-muted/10 min-h-0 flex-1 overflow-y-auto overscroll-contain p-6"
                 >
-                  {contentValue.trim() ? (
-                    <article className="prose prose-neutral dark:prose-invert max-w-none">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm, remarkMath]}
-                        rehypePlugins={[rehypeKatex]}
-                        components={previewComponents as unknown as Components}
-                      >
-                        {preprocessMdxContent(contentValue)}
-                      </ReactMarkdown>
+                  {previewNode !== null ? (
+                    <article className="prose prose-neutral dark:prose-invert text-foreground/90 max-w-none">
+                      {previewNode}
                     </article>
+                  ) : contentValue.trim() ? (
+                    <div className="text-muted-foreground flex h-full min-h-[300px] flex-col items-center justify-center space-y-2 text-center text-sm">
+                      <Loader2 className="size-6 animate-spin" />
+                      <p>Compiling MDX preview…</p>
+                    </div>
                   ) : (
                     <div className="text-muted-foreground flex h-full min-h-[300px] flex-col items-center justify-center space-y-2 text-center text-sm">
                       <Eye className="size-8 opacity-40" />

@@ -1,9 +1,8 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { redirect } from 'next/navigation';
 
-import { adminBlogLabels } from '@/config/BlogAdmin';
+import { BLOG_VALIDATION, adminBlogLabels } from '@/config/BlogAdmin';
 import { requireAdmin } from '@/lib/auth-guard';
 import { deletePost, getPostForAdminBySlug, savePost } from '@/lib/blog';
 import { getFileBlogPostBySlug } from '@/lib/blog-file-loader';
@@ -15,6 +14,10 @@ import {
   normalizeSlug,
   postFormSchema,
 } from '@/lib/blog-validation';
+import {
+  type MdxPreviewResult,
+  compileMdxPreview,
+} from '@/lib/mdx-preview-render';
 import { preprocessMdxContent, validateMdxCompilation } from '@/lib/mdx-server';
 import {
   normalizeProjectRecord,
@@ -172,9 +175,26 @@ export async function savePostAction(
     };
   }
 
-  // Redirect to admin dashboard on success
-  redirect('/admin');
   return { success: true };
+}
+
+export async function renderMdxPreviewAction(
+  content: string,
+): Promise<MdxPreviewResult> {
+  await requireAdmin({ redirectOnFail: false });
+
+  if (
+    typeof content !== 'string' ||
+    content.length > BLOG_VALIDATION.content.maxCharacters
+  ) {
+    return {
+      valid: false,
+      error: 'Content is too large to preview.',
+      reason: 'Content is too large to preview.',
+    };
+  }
+
+  return compileMdxPreview(content);
 }
 
 /**
@@ -250,22 +270,6 @@ export async function deletePostAction(
           : adminBlogLabels.errors.generalDeleteError,
     };
   }
-}
-
-/**
- * Server Action for real-time live preview MDX syntax validation in PostForm.
- * First line verifies admin authorization via requireAdmin().
- */
-export async function validateMdxAction(content: string): Promise<{
-  valid: boolean;
-  error?: string;
-  reason?: string;
-  line?: number;
-  column?: number;
-  sourceExcerpt?: string;
-}> {
-  await requireAdmin({ redirectOnFail: false });
-  return validateMdxCompilation(content);
 }
 
 export async function saveProjectAction(

@@ -20,6 +20,255 @@ export interface PreprocessResult {
   mapLineToOriginal: (preprocessedLine: number) => number;
 }
 
+function findTagEnd(source: string, start: number): number {
+  let quote = '';
+
+  for (let i = start + 1; i < source.length; i++) {
+    const char = source[i];
+
+    if (quote) {
+      if (char === '\\') {
+        i++;
+      } else if (char === quote) {
+        quote = '';
+      }
+      continue;
+    }
+
+    if (char === '"' || char === "'") {
+      quote = char;
+    } else if (char === '{') {
+      const expressionEnd = findExpressionEnd(source, i);
+      if (expressionEnd === -1) return -1;
+      i = expressionEnd;
+    } else if (char === '>') {
+      return i;
+    }
+  }
+
+  return -1;
+}
+
+function findExpressionEnd(source: string, start: number): number {
+  let depth = 0;
+  let quote = '';
+  let lineComment = false;
+  let blockComment = false;
+  let regexCharacterClass = false;
+  let regexCanStart = true;
+  let inTemplate = false;
+  const templateFrames: { baseDepth: number; inExpression: boolean }[] = [];
+
+  for (let i = start; i < source.length; i++) {
+    const char = source[i];
+    const next = source[i + 1];
+
+    if (inTemplate) {
+      if (char === '\\') {
+        i++;
+      } else if (char === '`') {
+        templateFrames.pop();
+        inTemplate = false;
+      } else if (char === '$' && next === '{') {
+        const frame = templateFrames.at(-1);
+        if (frame) frame.inExpression = true;
+        depth++;
+        inTemplate = false;
+        regexCanStart = true;
+        i++;
+      }
+      continue;
+    }
+
+    if (lineComment) {
+      if (char === '\n') lineComment = false;
+      continue;
+    }
+    if (blockComment) {
+      if (char === '*' && next === '/') {
+        blockComment = false;
+        i++;
+      }
+      continue;
+    }
+    if (regexCharacterClass) {
+      if (char === '\\') {
+        i++;
+      } else if (char === ']') {
+        regexCharacterClass = false;
+      }
+      continue;
+    }
+    if (quote) {
+      if (char === '\\') {
+        i++;
+      } else if (char === quote) {
+        quote = '';
+      }
+      continue;
+    }
+
+    if (char === '/' && next === '/') {
+      lineComment = true;
+      i++;
+    } else if (char === '/' && next === '*') {
+      blockComment = true;
+      i++;
+    } else if (char === '/' && source[i - 1] === '<') {
+      regexCanStart = false;
+    } else if (char === '/' && regexCanStart) {
+      let closed = false;
+      for (i++; i < source.length; i++) {
+        if (source[i] === '\\') {
+          i++;
+        } else if (source[i] === '[') {
+          regexCharacterClass = true;
+        } else if (source[i] === ']') {
+          regexCharacterClass = false;
+        } else if (source[i] === '/' && !regexCharacterClass) {
+          closed = true;
+          while (/[A-Za-z]/.test(source[i + 1] || '')) i++;
+          break;
+        }
+      }
+      if (!closed) return -1;
+      regexCanStart = false;
+    } else if (char === '"' || char === "'") {
+      quote = char;
+      regexCanStart = false;
+    } else if (char === '`') {
+      templateFrames.push({ baseDepth: depth, inExpression: false });
+      inTemplate = true;
+      regexCanStart = false;
+    } else if (char === '{') {
+      depth++;
+      regexCanStart = true;
+    } else if (char === '}') {
+      depth--;
+      const frame = templateFrames.at(-1);
+      if (frame?.inExpression && frame.baseDepth === depth) {
+        frame.inExpression = false;
+        inTemplate = true;
+        regexCanStart = false;
+      } else if (depth === 0) {
+        return i;
+      } else {
+        regexCanStart = false;
+      }
+    } else if (/\s/.test(char)) {
+      continue;
+    } else if (/[A-Za-z_$]/.test(char)) {
+      const word = source.slice(i).match(/^[A-Za-z_$][\w$]*/)?.[0] || char;
+      regexCanStart =
+        /^(?:return|throw|case|delete|void|typeof|new|in|of|yield|await|else|do|instanceof|typeof)$/.test(
+          word,
+        );
+      i += word.length - 1;
+    } else if (/\d/.test(char)) {
+      while (/[\w.]/.test(source[i + 1] || '')) i++;
+      regexCanStart = false;
+    } else if (char === ')' || char === ']') {
+      regexCanStart = false;
+    } else if (
+      char === '(' ||
+      char === '[' ||
+      /[=,:;!?&|+\-*%^~<>]/.test(char)
+    ) {
+      regexCanStart = true;
+    }
+  }
+
+  return -1;
+}
+
+function escapeMdxProse(source: string): string {
+  let result = '';
+  let precedingBackslashes = 0;
+
+  for (const char of source) {
+    if (
+      (char === '<' || char === '{' || char === '}') &&
+      precedingBackslashes % 2 === 0
+    ) {
+      result += '\\';
+    }
+    result += char;
+    precedingBackslashes = char === '\\' ? precedingBackslashes + 1 : 0;
+  }
+
+  return result;
+}
+
+function protectJsx(
+  source: string,
+  tokens: string[],
+  placeholder: (idx: number) => string,
+): string {
+  let result = '';
+  let jsxDepth = 0;
+
+  const protect = (value: string) => {
+    const idx = tokens.length;
+    tokens.push(value);
+    return placeholder(idx);
+  };
+
+  for (let i = 0; i < source.length;) {
+    if (source[i] === '<') {
+      const tagPrefix = source
+        .slice(i)
+        .match(/^<(\/?)([A-Za-z_$][\w$.-]*)?(?=[\s/>])/);
+      const isFragmentTag =
+        source.startsWith('<>', i) || source.startsWith('</>', i);
+      const hasTagName = Boolean(tagPrefix?.[2]) || isFragmentTag;
+      const isClosingTag = tagPrefix?.[1] === '/';
+      const hasTagBoundary =
+        i === 0 || /[\s([{:;,]/.test(source[i - 1]) || isClosingTag;
+      const end = tagPrefix && hasTagName ? findTagEnd(source, i) : -1;
+
+      if (tagPrefix && hasTagName && hasTagBoundary && end !== -1) {
+        const tag = source.slice(i, end + 1);
+        const isClosing = isClosingTag;
+        const name = tagPrefix[2] || '';
+        const isSelfClosing = /\/\s*>$/.test(tag);
+        const isVoidElement =
+          /^(?:area|base|br|col|embed|hr|img|input|link|meta|param|source|track|wbr)$/i.test(
+            name,
+          );
+
+        result += protect(tag);
+        if (isClosing) {
+          jsxDepth = Math.max(0, jsxDepth - 1);
+        } else if (!isSelfClosing && !isVoidElement) {
+          jsxDepth++;
+        }
+        i = end + 1;
+        continue;
+      }
+      if (tagPrefix && hasTagName && hasTagBoundary) {
+        result += source.slice(i);
+        break;
+      }
+    }
+
+    if (source[i] === '{' && jsxDepth > 0) {
+      const end = findExpressionEnd(source, i);
+      if (end !== -1) {
+        result += protect(source.slice(i, end + 1));
+        i = end + 1;
+        continue;
+      }
+      result += source.slice(i);
+      break;
+    }
+
+    result += source[i];
+    i++;
+  }
+
+  return result;
+}
+
 export function preprocessMdxWithLineMap(rawContent: string): PreprocessResult {
   if (!rawContent || typeof rawContent !== 'string') {
     return {
@@ -122,14 +371,18 @@ export function preprocessMdxWithLineMap(rawContent: string): PreprocessResult {
     },
   );
 
-  // 2. Protect Inline Code (`...`) BEFORE math, so math delimiters inside code are not touched
+  // 2. Protect JSX expressions before inline code and math so JavaScript template
+  //    literals and delimiters inside expressions are not mistaken for Markdown.
+  text = protectJsx(text, tokens, placeholder);
+
+  // 3. Protect Inline Code (`...`) BEFORE math, so math delimiters inside code are not touched
   text = text.replace(/(`+[^`\n]+?`+)/g, (match) => {
     const idx = tokens.length;
     tokens.push(match);
     return placeholder(idx);
   });
 
-  // 3. Normalize common LaTeX math syntaxes that CommonMark/remark-math do not parse
+  // 4. Normalize common LaTeX math syntaxes that CommonMark/remark-math do not parse
   //    and then protect the normalized forms before escaping prose.
   text = text.replace(/\\\[([\s\S]*?)\\\]/g, (_, math: string) => {
     return `\n$$\n${math.trim()}\n$$\n`;
@@ -139,23 +392,14 @@ export function preprocessMdxWithLineMap(rawContent: string): PreprocessResult {
     return `$${math.trim()}$`;
   });
 
-  text = text.replace(
-    /(^|[^$])\\begin\{([a-zA-Z*]+)\}([\s\S]*?)\\end\{\2\}/g,
-    (_match, prefix: string, env: string, inner: string) => {
-      return `${prefix}\n$$\n\\begin{${env}}${inner}\\end{${env}}\n$$\n`;
-    },
-  );
-
-  // 4. Protect Block Math ($$...$$)
+  // Protect existing math before normalizing bare environments so nested delimiters
+  // are not introduced inside display math or existing inline expressions.
   text = text.replace(/(\$\$[\s\S]*?\$\$)/g, (match) => {
     const idx = tokens.length;
     tokens.push(match);
     return placeholder(idx);
   });
 
-  // 5. Protect Inline Math ($...$)
-  // TeX rules: opening $ not preceded by \ and not followed by whitespace or $
-  // closing $ not preceded by whitespace or \ and not followed by digit
   text = text.replace(
     /(?<!\\)\$(?!\s|\$)((?:\\\$|[^$\n])+?)(?<![\s\\])\$(?!\d)/g,
     (match) => {
@@ -165,27 +409,49 @@ export function preprocessMdxWithLineMap(rawContent: string): PreprocessResult {
     },
   );
 
-  // 6. Convert HTML comments to MDX comments
+  // Normalize only bare LaTeX environments; existing math, code, and JSX are protected.
+  text = text.replace(
+    /(^|[^$])\\begin\{([a-zA-Z*]+)\}([\s\S]*?)\\end\{\2\}/g,
+    (_match, prefix: string, env: string, inner: string) => {
+      return `${prefix}\n$$\n\\begin{${env}}${inner}\\end{${env}}\n$$\n`;
+    },
+  );
+
+  // Protect newly normalized display math before escaping prose.
+  text = text.replace(/(\$\$[\s\S]*?\$\$)/g, (match) => {
+    const idx = tokens.length;
+    tokens.push(match);
+    return placeholder(idx);
+  });
+
+  // Protect any remaining inline math, including forms produced by \( ... \).
+  text = text.replace(
+    /(?<!\\)\$(?!\s|\$)((?:\\\$|[^$\n])+?)(?<![\s\\])\$(?!\d)/g,
+    (match) => {
+      const idx = tokens.length;
+      tokens.push(match);
+      return placeholder(idx);
+    },
+  );
+
+  // 7. Convert HTML comments to MDX comments
   text = text.replace(/<!--([\s\S]*?)-->/g, '{/*$1*/}');
 
-  // 7. Protect existing and newly converted MDX comments
+  // 8. Protect existing and newly converted MDX comments
   text = text.replace(/\{\/\*[\s\S]*?\*\/\}/g, (match) => {
     const idx = tokens.length;
     tokens.push(match);
     return placeholder(idx);
   });
 
-  // 8. Escape currency dollar signs in prose so remark-math does not mistake them for math
-  text = text.replace(/(?<!\\)\$(?=\d)/g, '\\$');
+  // 9. Escape currency and MDX syntax characters in prose.
+  text = text.replace(
+    /(?<!\\)(?:\\\\)*\$(?=\d)/g,
+    (match) => `${match.slice(0, -1)}\\$`,
+  );
+  text = escapeMdxProse(text);
 
-  // 9. Escape stray "<" followed by a digit, space, "=" or end-of-line
-  text = text.replace(/(?<!\\)<(?=[\d\s=]|$)/g, '\\<');
-
-  // 10. Escape bare "{" and "}" in normal prose
-  text = text.replace(/(?<!\\)\{/g, '\\{');
-  text = text.replace(/(?<!\\)\}/g, '\\}');
-
-  // 11. Restore protected blocks in reverse order
+  // 12. Restore protected blocks in reverse order
   for (let i = tokens.length - 1; i >= 0; i--) {
     text = text.replace(placeholder(i), () => tokens[i]);
   }
