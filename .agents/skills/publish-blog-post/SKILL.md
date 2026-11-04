@@ -24,7 +24,7 @@ Follow these steps to author and publish a new post:
    - **Cover Image**: Upload an image (automatically compressed client-side to WebP <300 KB and stored in Redis under `/api/blog/cover/<uuid>`) or provide an external HTTPS image URL.
    - **YouTube Embed**: (Optional) Provide a YouTube video URL or ID.
    - **Tags**: Comma-separated tags.
-   - **Content**: Compose using Markdown/MDX. Automatic live preview pauses above 20,000 characters; use **Preview full article** to explicitly compile and inspect larger posts, up to the 500,000-character limit.
+   - **Content**: Compose using Markdown/MDX. Pasting content skips automatic preview; use **Preview full article** to explicitly compile pasted drafts. Automatic preview also pauses above 20,000 characters. Both preview and save support up to the 500,000-character content limit.
 4. Toggle **Publish** (or leave as draft to save privately).
 5. Click **Save Post**. Server Actions automatically revalidate `/blog` and `/blog/<slug>`.
 
@@ -74,6 +74,6 @@ isPublished: true
    - Header title, date, reading time, category, and tags render cleanly.
    - Table of contents links navigate to headings correctly.
    - Code blocks render syntax highlighting and copy button works.
-   - KaTeX formulas render without syntax errors. Automatic preview pauses over 20,000 characters; use **Preview full article** to render the full post on demand.
+   - KaTeX formulas render without syntax errors. Pasted content requires **Preview full article**; automatic preview pauses over 20,000 characters.
    - Mobile and desktop responsive layouts.
 3. Run `npm run build` to verify Next.js static generation passes without MDX parsing errors.

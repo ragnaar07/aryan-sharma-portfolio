@@ -205,9 +205,10 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
   const [previewNode, setPreviewNode] = useState<React.ReactNode | null>(null);
   const [isPreviewStale, setIsPreviewStale] = useState(false);
   const [isFullPreviewLoading, setIsFullPreviewLoading] = useState(false);
-  const [hasLargeContent, setHasLargeContent] = useState(
+  const [requiresManualPreview, setRequiresManualPreview] = useState(
     currentValues.content.length > BLOG_VALIDATION.content.maxPreviewCharacters,
   );
+  const skipNextContentPreviewRef = useRef(false);
   const contentSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
@@ -489,7 +490,7 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
         );
         setPreviewNode(null);
       }
-      setHasLargeContent(
+      setRequiresManualPreview(
         state.values.content.length >
           BLOG_VALIDATION.content.maxPreviewCharacters,
       );
@@ -535,7 +536,7 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
       );
       setPreviewNode(null);
     }
-    setHasLargeContent(
+    setRequiresManualPreview(
       recoveredDraft.values.content.length >
         BLOG_VALIDATION.content.maxPreviewCharacters,
     );
@@ -1402,7 +1403,23 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                       clearTimeout(contentSyncTimerRef.current);
                     }
 
-                    setHasLargeContent(
+                    if (skipNextContentPreviewRef.current) {
+                      skipNextContentPreviewRef.current = false;
+                      setRequiresManualPreview(true);
+                      setMdxSyntaxError(null);
+                      setMdxErrorLocation(null);
+                      setMdxValidationWarning(
+                        'Automatic preview is skipped after pasting to keep the editor responsive. Click “Preview full article” when you want to render it.',
+                      );
+                      setPreviewNode(null);
+                      setIsPreviewStale(false);
+                      contentSyncTimerRef.current = setTimeout(() => {
+                        setDraftRevision((revision) => revision + 1);
+                      }, 350);
+                      return;
+                    }
+
+                    setRequiresManualPreview(
                       content.length >
                         BLOG_VALIDATION.content.maxPreviewCharacters,
                     );
@@ -1445,7 +1462,11 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                       setContentInputError(
                         `This paste exceeds the ${BLOG_VALIDATION.content.maxCharacters.toLocaleString()} character limit. Shorten the text or paste a smaller section.`,
                       );
+                      return;
                     }
+
+                    skipNextContentPreviewRef.current = true;
+                    setRequiresManualPreview(true);
                   }}
                   placeholder={adminBlogLabels.form.contentPlaceholder}
                   disabled={isPending}
@@ -1535,7 +1556,7 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                       </AlertDescription>
                     </Alert>
                   )}
-                  {hasLargeContent && (
+                  {requiresManualPreview && (
                     <Button
                       type="button"
                       size="sm"
