@@ -185,12 +185,12 @@ export async function renderMdxPreviewAction(
 
   if (
     typeof content !== 'string' ||
-    content.length > BLOG_VALIDATION.content.maxCharacters
+    content.length > BLOG_VALIDATION.content.maxPreviewCharacters
   ) {
     return {
       valid: false,
-      error: 'Content is too large to preview.',
-      reason: 'Content is too large to preview.',
+      error: 'Content is too large for live preview.',
+      reason: `Live preview is limited to ${BLOG_VALIDATION.content.maxPreviewCharacters.toLocaleString()} characters. Save the post to validate larger content.`,
     };
   }
 

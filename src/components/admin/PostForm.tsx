@@ -28,6 +28,7 @@ import React, {
 import { renderMdxPreviewAction, savePostAction } from '@/app/admin/actions';
 import {
   BLOG_CATEGORIES,
+  BLOG_VALIDATION,
   BlogCategory,
   adminBlogLabels,
 } from '@/config/BlogAdmin';
@@ -172,6 +173,9 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
   const [slugValue, setSlugValue] = useState<string>(currentValues.slug);
   const [contentValue, setContentValue] = useState<string>(
     currentValues.content,
+  );
+  const [contentInputError, setContentInputError] = useState<string | null>(
+    null,
   );
   const [titleValue, setTitleValue] = useState<string>(currentValues.title);
   const [descriptionValue, setDescriptionValue] = useState<string>(
@@ -364,6 +368,15 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
 
     if (!contentValue.trim()) {
       setPreviewNode(null);
+      setIsPreviewStale(false);
+      return;
+    }
+
+    if (contentValue.length > BLOG_VALIDATION.content.maxPreviewCharacters) {
+      setPreviewNode(null);
+      setMdxValidationWarning(
+        `Live preview is paused for content over ${BLOG_VALIDATION.content.maxPreviewCharacters.toLocaleString()} characters. Saving will still validate the full post.`,
+      );
       setIsPreviewStale(false);
       return;
     }
@@ -1166,7 +1179,8 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
             </CardDescription>
           </div>
           <Badge variant="outline" className="text-xs font-normal">
-            {contentValue.length.toLocaleString()} characters
+            {contentValue.length.toLocaleString()} /{' '}
+            {BLOG_VALIDATION.content.maxCharacters.toLocaleString()} characters
           </Badge>
         </CardHeader>
         <CardContent className="min-h-0 flex-1 p-4 pt-4 sm:p-6">
@@ -1224,17 +1238,47 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                     id="content"
                     name="content"
                     value={contentValue}
+                    maxLength={BLOG_VALIDATION.content.maxCharacters}
                     onChange={(e) => {
                       setContentValue(e.target.value);
+                      setContentInputError(null);
                       setIsDraftDirty(true);
+                    }}
+                    onPaste={(event) => {
+                      const pastedText =
+                        event.clipboardData.getData('text/plain');
+                      const textarea = event.currentTarget;
+                      const selectedLength =
+                        textarea.selectionEnd - textarea.selectionStart;
+                      const nextLength =
+                        contentValue.length -
+                        selectedLength +
+                        pastedText.length;
+
+                      if (nextLength > BLOG_VALIDATION.content.maxCharacters) {
+                        event.preventDefault();
+                        setContentInputError(
+                          `This paste exceeds the ${BLOG_VALIDATION.content.maxCharacters.toLocaleString()} character limit. Shorten the text or paste a smaller section.`,
+                        );
+                      }
                     }}
                     placeholder={adminBlogLabels.form.contentPlaceholder}
                     disabled={isPending}
                     data-lenis-prevent
                     className="[field-sizing:normal] h-full w-full resize-none overflow-y-auto overscroll-contain rounded-none border-0 bg-transparent p-4 font-mono text-sm leading-relaxed focus-visible:ring-0 focus-visible:ring-offset-0"
-                    aria-invalid={Boolean(state.errors?.content)}
+                    aria-invalid={Boolean(
+                      state.errors?.content || contentInputError,
+                    )}
                   />
                 </div>
+                {contentInputError && (
+                  <p
+                    className="text-destructive border-border border-t px-3 py-2 text-xs"
+                    role="alert"
+                  >
+                    {contentInputError}
+                  </p>
+                )}
               </div>
             )}
 
@@ -1273,7 +1317,14 @@ export function PostForm({ initialPost, isEditing = false }: PostFormProps) {
                   {(mdxSyntaxError ||
                     mdxValidationWarning ||
                     state.errors?.content) && (
-                    <Alert variant="destructive" className="py-2.5">
+                    <Alert
+                      variant={
+                        mdxSyntaxError || state.errors?.content
+                          ? 'destructive'
+                          : 'default'
+                      }
+                      className="py-2.5"
+                    >
                       <AlertCircle className="size-4" />
                       <AlertTitle className="text-xs font-semibold">
                         {mdxValidationWarning &&
