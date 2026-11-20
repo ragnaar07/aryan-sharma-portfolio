@@ -1,3 +1,5 @@
+import type { Metadata } from 'next';
+
 import { about } from './About';
 import { heroConfig } from './Hero';
 
@@ -169,6 +171,19 @@ export const pageMetadata: Record<string, PageMeta> = {
     twitterCard: 'summary_large_image',
   },
 
+  '/life-outtakes': {
+    title: 'Life Outtakes - Moments Beyond the Screen',
+    description:
+      'A personal collection of candid moments, side quests, and memories beyond the screen.',
+    keywords: [
+      'life outtakes',
+      'personal moments',
+      'photography',
+      'side quests',
+    ],
+    twitterCard: 'summary_large_image',
+  },
+
   // Resume page
   '/resume': {
     title: 'Resume - Professional CV',
@@ -260,7 +275,7 @@ export function getPageMetadata(pathname: string): PageMeta {
 }
 
 // Helper function to generate complete metadata object for Next.js
-export function generateMetadata(pathname: string) {
+export function generateMetadata(pathname: string): Metadata {
   const pageMeta = getPageMetadata(pathname);
   const siteUrl = getSiteUrl();
 

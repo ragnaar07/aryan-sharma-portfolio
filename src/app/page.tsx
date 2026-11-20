@@ -8,6 +8,7 @@ import Experience from '@/components/landing/Experience';
 import Github from '@/components/landing/Github';
 import Hero from '@/components/landing/Hero';
 import Journey from '@/components/landing/Journey';
+import LifeOuttakes from '@/components/landing/LifeOuttakes';
 import Work from '@/components/landing/Projects';
 
 export default function page() {
@@ -19,6 +20,7 @@ export default function page() {
       <About />
       <Github />
       <Blog />
+      <LifeOuttakes />
       <CTA />
       <Journey />
     </Container>

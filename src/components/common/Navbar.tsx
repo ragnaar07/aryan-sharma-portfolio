@@ -28,7 +28,14 @@ export default function Navbar() {
                 key={item.label}
                 href={item.href}
               >
-                {item.label}
+                {item.label === 'Life Outtakes' ? (
+                  <>
+                    <span className="sm:hidden">Life</span>
+                    <span className="hidden sm:inline">{item.label}</span>
+                  </>
+                ) : (
+                  item.label
+                )}
               </Link>
             ))}
           </div>
