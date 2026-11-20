@@ -24,6 +24,10 @@ export const navbarConfig = {
       href: '/blog',
     },
     {
+      label: 'Life Outtakes',
+      href: '/life-outtakes',
+    },
+    {
       label: 'Contact',
       href: '/contact',
     },

@@ -2,6 +2,7 @@ import {
   BookOpen,
   ExternalLink,
   FolderKanban,
+  Images,
   LogOut,
   ShieldCheck,
 } from 'lucide-react';
@@ -53,6 +54,17 @@ export function AdminHeader({ session }: AdminHeaderProps) {
             >
               <FolderKanban className="size-3.5" />
               <span className="hidden sm:inline">Projects</span>
+            </Link>
+          </Button>
+
+          <Button variant="ghost" size="sm" asChild>
+            <Link
+              href="/admin/life-outtakes"
+              aria-label="Manage Life Outtakes"
+              className="flex items-center gap-1.5 text-xs"
+            >
+              <Images className="size-3.5" />
+              <span className="hidden sm:inline">Photos</span>
             </Link>
           </Button>
 

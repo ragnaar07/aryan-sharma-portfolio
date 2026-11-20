@@ -6,10 +6,7 @@ export default function Container({
   children,
   className,
   ...props
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+}: React.ComponentProps<'div'>) {
   return (
     <div
       className={cn(
