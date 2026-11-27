@@ -4,8 +4,10 @@
   const isReducedMotion =
     window.matchMedia(`(prefers-reduced-motion: reduce)`) === true ||
     window.matchMedia(`(prefers-reduced-motion: reduce)`).matches === true;
+  const isPointerDevice =
+    window.matchMedia('(pointer: fine)').matches && window.innerWidth >= 768;
 
-  if (isReducedMotion) return;
+  if (isReducedMotion || !isPointerDevice) return;
 
   const nekoEl = document.createElement('div');
 
@@ -19,6 +21,8 @@
   let idleTime = 0;
   let idleAnimation = null;
   let idleAnimationFrame = 0;
+  let mode = window.location.pathname === '/' ? 'follow' : 'corner';
+  let corner = { right: 24, top: 24 };
 
   const nekoSpeed = 10;
   const spriteSets = {
@@ -110,6 +114,25 @@
       mousePosY = event.clientY;
     });
 
+    window.addEventListener('oneko:mode', function (event) {
+      mode = event.detail?.mode || 'corner';
+      corner = event.detail?.corner || corner;
+
+      if (mode === 'hidden') {
+        nekoEl.style.display = 'none';
+        return;
+      }
+
+      nekoEl.style.display = 'block';
+
+      if (mode === 'corner') {
+        nekoPosX = window.innerWidth - corner.right - 16;
+        nekoPosY = corner.top + 16;
+        nekoEl.style.left = `${nekoPosX - 16}px`;
+        nekoEl.style.top = `${nekoPosY - 16}px`;
+      }
+    });
+
     window.requestAnimationFrame(onAnimationFrame);
   }
 
@@ -197,6 +220,28 @@
   }
 
   function frame() {
+    if (mode === 'hidden') {
+      return;
+    }
+
+    if (mode === 'corner') {
+      const cornerPosX = window.innerWidth - corner.right - 16;
+      const cornerPosY = corner.top + 16;
+      const diffX = nekoPosX - cornerPosX;
+      const diffY = nekoPosY - cornerPosY;
+      const distance = Math.sqrt(diffX ** 2 + diffY ** 2);
+
+      if (distance >= 1) {
+        nekoPosX -= (diffX / distance) * Math.min(nekoSpeed, distance);
+        nekoPosY -= (diffY / distance) * Math.min(nekoSpeed, distance);
+        nekoEl.style.left = `${nekoPosX - 16}px`;
+        nekoEl.style.top = `${nekoPosY - 16}px`;
+      } else {
+        idle();
+      }
+      return;
+    }
+
     frameCount += 1;
     const diffX = nekoPosX - mousePosX;
     const diffY = nekoPosY - mousePosY;
